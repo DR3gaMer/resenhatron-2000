@@ -524,22 +524,36 @@
             let hasChanges = false;
 
             const updatedTrips = remoteData.trips.map(t => {
-              if (t.id === 'trip-ano-novo-2027' && t.destination !== 'Mansão do Nickas') {
+              let nextTrip = { ...t };
+              if (nextTrip.id === 'trip-ano-novo-2027' && nextTrip.destination !== 'Mansão do Nickas') {
                 hasChanges = true;
-                return { ...t, destination: 'Mansão do Nickas' };
+                nextTrip.destination = 'Mansão do Nickas';
               }
-              if (t.id === 'trip-copa-feminina-2027' && (t.targetDate !== '2027-06-29' || !String(t.destination || '').includes('Neo Química Arena'))) {
+              if (nextTrip.id === 'trip-copa-feminina-2027' && (nextTrip.targetDate !== '2027-06-29' || !String(nextTrip.destination || '').includes('Neo Química Arena'))) {
                 const defWc = defaultsMap.get('trip-copa-feminina-2027');
                 hasChanges = true;
-                return {
-                  ...t,
-                  title: defWc ? defWc.title : t.title,
+                nextTrip = {
+                  ...nextTrip,
+                  title: defWc ? defWc.title : nextTrip.title,
                   destination: 'Neo Química Arena — São Paulo, SP',
-                  estimatedPeriod: defWc ? defWc.estimatedPeriod : t.estimatedPeriod,
+                  estimatedPeriod: defWc ? defWc.estimatedPeriod : nextTrip.estimatedPeriod,
                   targetDate: '2027-06-29'
                 };
               }
-              return t;
+              if (Array.isArray(nextTrip.squad)) {
+                const placeholderNames = new Set(['Lucas', 'Mariana', 'Pedro']);
+                const filteredSquad = nextTrip.squad
+                  .filter(m => !placeholderNames.has(m.name))
+                  .map(m => m.name === 'Aedriun' ? { ...m, name: 'DR' } : m);
+                if (filteredSquad.length === 0) {
+                  filteredSquad.push({ id: `sq-${nextTrip.id}-dr`, name: 'DR', status: 'Confirmado' });
+                }
+                if (JSON.stringify(filteredSquad) !== JSON.stringify(nextTrip.squad)) {
+                  hasChanges = true;
+                  nextTrip.squad = filteredSquad;
+                }
+              }
+              return nextTrip;
             });
 
             const missingDefaults = (window.DEFAULT_TRIPS_REF || []).filter(dt => !existingIds.has(dt.id));
@@ -784,10 +798,7 @@
           { id: 'id-ny-2', text: 'Brinde da virada todos de branco na Mansão do Nickas', tag: 'Clássico', votes: 0, voted: false }
         ],
         squad: [
-          { id: 'sq-ny-1', name: 'Aedriun', status: 'Confirmado' },
-          { id: 'sq-ny-2', name: 'Lucas', status: 'Talvez' },
-          { id: 'sq-ny-3', name: 'Mariana', status: 'Talvez' },
-          { id: 'sq-ny-4', name: 'Pedro', status: 'Talvez' }
+          { id: 'sq-ny-1', name: 'DR', status: 'Confirmado' }
         ]
       },
       {
@@ -821,10 +832,7 @@
           { id: 'id-vnl-3', text: 'Comemorar pós-jogo em um bar temático', tag: 'Rolê', votes: 0, voted: false }
         ],
         squad: [
-          { id: 'sq-vnl-1', name: 'Aedriun', status: 'Confirmado' },
-          { id: 'sq-vnl-2', name: 'Lucas', status: 'Talvez' },
-          { id: 'sq-vnl-3', name: 'Mariana', status: 'Talvez' },
-          { id: 'sq-vnl-4', name: 'Pedro', status: 'Talvez' }
+          { id: 'sq-vnl-1', name: 'DR', status: 'Confirmado' }
         ]
       },
       {
@@ -857,10 +865,7 @@
           { id: 'id-wc-2', text: 'Esquenta da galera antes do jogo em São Paulo', tag: 'Resenha', votes: 0, voted: false }
         ],
         squad: [
-          { id: 'sq-wc-1', name: 'Aedriun', status: 'Confirmado' },
-          { id: 'sq-wc-2', name: 'Lucas', status: 'Talvez' },
-          { id: 'sq-wc-3', name: 'Mariana', status: 'Talvez' },
-          { id: 'sq-wc-4', name: 'Pedro', status: 'Talvez' }
+          { id: 'sq-wc-1', name: 'DR', status: 'Confirmado' }
         ]
       },
       {
@@ -891,10 +896,7 @@
           { id: 'id-ch-3', text: 'Ver o pôr do sol do alto do Sky Costanera', tag: 'Visual', votes: 0, voted: false }
         ],
         squad: [
-          { id: 'sq-ch-1', name: 'Aedriun', status: 'Confirmado' },
-          { id: 'sq-ch-2', name: 'Lucas', status: 'Talvez' },
-          { id: 'sq-ch-3', name: 'Mariana', status: 'Talvez' },
-          { id: 'sq-ch-4', name: 'Pedro', status: 'Talvez' }
+          { id: 'sq-ch-1', name: 'DR', status: 'Confirmado' }
         ]
       }
     ];
@@ -915,6 +917,8 @@
     let slideIntervalId = null;
     let resetConfirmPending = false;
     let deleteConfirmTripId = null;
+    let editingCheckpointKey = null;
+    let editingIdeaKey = null;
 
     function openPhotosDB() {
       return new Promise((resolve, reject) => {
@@ -1563,13 +1567,31 @@
                 ${activeTab === 'vault' ? `
                   <div class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
                         <span class="block text-[11px] text-gray-400">Guardado por pessoa</span>
-                        <span class="font-mono text-base font-extrabold text-emerald-400">${formatCurrency(trip.savedPerPerson)}</span>
+                        <span class="font-mono text-base font-extrabold text-emerald-400 block">${formatCurrency(trip.savedPerPerson)}</span>
+                        ${(trip.savedPerPerson || 0) > 0 ? `
+                          <button onclick="resetSavedVault('${trip.id}')" class="text-[10px] text-gray-400 hover:text-rose-300 underline cursor-pointer">
+                            Zerar guardado
+                          </button>
+                        ` : ''}
                       </div>
-                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
-                        <span class="block text-[11px] text-gray-400">Meta total por pessoa</span>
-                        <span class="font-mono text-base font-extrabold text-white">${formatCurrency(trip.goalPerPerson)}</span>
+                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
+                        <span class="block text-[11px] text-gray-400">Meta total por pessoa (editável)</span>
+                        <form onsubmit="handleUpdateGoal(event, '${trip.id}')" class="flex items-center gap-1.5">
+                          <span class="text-xs font-mono text-gray-400">R$</span>
+                          <input
+                            type="number"
+                            id="goal-input-${trip.id}"
+                            value="${trip.goalPerPerson || 0}"
+                            min="0"
+                            step="50"
+                            class="w-full px-2 py-1 rounded-lg bg-[#080B12] border border-slate-700 text-xs font-mono font-bold text-white focus:border-cyan-400 focus:outline-none"
+                          />
+                          <button type="submit" class="px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer shrink-0">
+                            Salvar
+                          </button>
+                        </form>
                       </div>
                       <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
                         <span class="block text-[11px] text-gray-400">Sugestão mensal (${monthsLeft}m)</span>
@@ -1601,17 +1623,55 @@
                 ${activeTab === 'checkpoints' ? `
                   <div class="space-y-3">
                     <div class="space-y-2">
-                      ${(trip.checkpoints || []).map(cp => `
-                        <label class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            ${cp.done ? 'checked' : ''}
-                            onchange="toggleCheckpoint('${trip.id}', '${cp.id}')"
-                            class="w-4 h-4 rounded accent-cyan-400"
-                          />
-                          <span class="text-xs ${cp.done ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(cp.text)}</span>
-                        </label>
-                      `).join('')}
+                      ${(trip.checkpoints || []).length === 0 ? '<p class="text-xs text-gray-500">Nenhuma tarefa na checklist ainda.</p>' : ''}
+                      ${(trip.checkpoints || []).map(cp => {
+                        const cpKey = `${trip.id}:${cp.id}`;
+                        const isEditingCp = editingCheckpointKey === cpKey;
+                        return `
+                          <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700">
+                            ${isEditingCp ? `
+                              <form onsubmit="handleSaveEditCheckpoint(event, '${trip.id}', '${cp.id}')" class="flex-1 flex items-center gap-2">
+                                <input
+                                  type="text"
+                                  id="edit-cp-input-${cp.id}"
+                                  value="${escapeHtml(cp.text)}"
+                                  class="flex-1 px-2.5 py-1.5 rounded-lg bg-[#080B12] border border-cyan-400 text-xs text-white focus:outline-none"
+                                />
+                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer">Salvar</button>
+                                <button type="button" onclick="cancelEditCheckpoint()" class="px-2 py-1.5 rounded-lg text-[11px] text-gray-400 hover:text-white cursor-pointer">Cancelar</button>
+                              </form>
+                            ` : `
+                              <label class="flex-1 flex items-center gap-3 cursor-pointer min-w-0">
+                                <input
+                                  type="checkbox"
+                                  ${cp.done ? 'checked' : ''}
+                                  onchange="toggleCheckpoint('${trip.id}', '${cp.id}')"
+                                  class="w-4 h-4 rounded accent-cyan-400 shrink-0"
+                                />
+                                <span class="text-xs break-words ${cp.done ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(cp.text)}</span>
+                              </label>
+                              <div class="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onclick="startEditCheckpoint('${trip.id}', '${cp.id}')"
+                                  class="p-1.5 rounded-lg text-gray-400 hover:text-cyan-300 hover:bg-slate-800 cursor-pointer"
+                                  title="Editar tarefa"
+                                >
+                                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  onclick="deleteCheckpoint('${trip.id}', '${cp.id}')"
+                                  class="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                                  title="Excluir tarefa"
+                                >
+                                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                              </div>
+                            `}
+                          </div>
+                        `;
+                      }).join('')}
                     </div>
 
                     <form onsubmit="handleAddCheckpoint(event, '${trip.id}')" class="flex gap-2">
@@ -1633,19 +1693,114 @@
                   <div class="space-y-3">
                     <div class="space-y-2">
                       ${(trip.ideas || []).length === 0 ? '<p class="text-xs text-gray-500">Nenhuma ideia sugerida ainda. Mande a primeira!</p>' : ''}
-                      ${(trip.ideas || []).map(idea => `
-                        <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
-                          <div class="space-y-0.5">
-                            <span class="text-xs text-gray-200 block">${escapeHtml(idea.text)}</span>
-                            <span class="text-[10px] font-mono text-amber-300/80">${escapeHtml(idea.tag || 'Sugestão')}</span>
+                      ${(trip.ideas || []).map(idea => {
+                        const ideaKey = `${trip.id}:${idea.id}`;
+                        const isEditingIdea = editingIdeaKey === ideaKey;
+                        return `
+                          <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                            ${isEditingIdea ? `
+                              <form onsubmit="handleSaveEditIdea(event, '${trip.id}', '${idea.id}')" class="flex-1 flex flex-wrap sm:flex-nowrap items-center gap-2">
+                                <input
+                                  type="text"
+                                  id="edit-idea-text-${idea.id}"
+                                  value="${escapeHtml(idea.text)}"
+                                  class="flex-1 min-w-[160px] px-2.5 py-1.5 rounded-lg bg-[#080B12] border border-amber-400 text-xs text-white focus:outline-none"
+                                />
+                                <input
+                                  type="text"
+                                  id="edit-idea-tag-${idea.id}"
+                                  value="${escapeHtml(idea.tag || 'Sugestão')}"
+                                  placeholder="Tag"
+                                  class="w-28 px-2.5 py-1.5 rounded-lg bg-[#080B12] border border-slate-700 text-xs text-amber-300 focus:outline-none"
+                                />
+                                <button type="submit" class="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 cursor-pointer">Salvar</button>
+                                <button type="button" onclick="cancelEditIdea()" class="px-2 py-1.5 rounded-lg text-[11px] text-gray-400 hover:text-white cursor-pointer">Cancelar</button>
+                              </form>
+                            ` : `
+                              <div class="space-y-0.5 min-w-0 flex-1">
+                                <span class="text-xs text-gray-200 block break-words">${escapeHtml(idea.text)}</span>
+                                <span class="text-[10px] font-mono text-amber-300/80">${escapeHtml(idea.tag || 'Sugestão')}</span>
+                              </div>
+                              <div class="flex items-center gap-1.5 shrink-0">
+                                <button
+                                  type="button"
+                                  onclick="startEditIdea('${trip.id}', '${idea.id}')"
+                                  class="p-1.5 rounded-lg text-gray-400 hover:text-amber-300 hover:bg-slate-800 cursor-pointer"
+                                  title="Editar ideia"
+                                >
+                                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button
+                                  type="button"
+                                  onclick="deleteIdea('${trip.id}', '${idea.id}')"
+                                  class="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                                  title="Excluir ideia"
+                                >
+                                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button
+                                  onclick="voteIdea('${trip.id}', '${idea.id}')"
+                                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer ${idea.voted ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-gray-300 hover:bg-slate-700'}"
+                                >
+                                  <span>▲</span>
+                                  <span>${idea.votes || 0}</span>
+                                </button>
+                              </div>
+                            `}
                           </div>
-                          <button
-                            onclick="voteIdea('${trip.id}', '${idea.id}')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer ${idea.voted ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-gray-300 hover:bg-slate-700'}"
-                          >
-                            <span>▲</span>
-                            <span>${idea.votes || 0}</span>
-                          </button>
+                        `;
+                      }).join('')}
+                    </div>
+
+                    <form onsubmit="handleAddIdea(event, '${trip.id}')" class="flex flex-wrap sm:flex-nowrap gap-2">
+                      <input
+                        type="text"
+                        id="new-idea-${trip.id}"
+                        placeholder="Sugerir passeio, rolê ou experiência..."
+                        class="flex-1 min-w-[180px] px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-amber-400 focus:outline-none"
+                      />
+                      <input
+                        type="text"
+                        id="new-idea-tag-${trip.id}"
+                        placeholder="Categoria (ex: Passeio)"
+                        class="w-full sm:w-36 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-amber-400 focus:outline-none"
+                      />
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 cursor-pointer shrink-0">
+                        Sugerir
+                      </button>
+                    </form>
+                  </div>
+                ` : ''}
+
+                <!-- ABA 4: GALERA & CONFIG -->
+                ${activeTab === 'squad' ? `
+                  <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      ${(trip.squad || []).map(member => `
+                        <div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                          <span class="text-xs font-semibold text-white truncate">${escapeHtml(member.name)}</span>
+                          <div class="flex items-center gap-1.5 shrink-0">
+                            <button
+                              onclick="cycleMemberStatus('${trip.id}', '${member.id}')"
+                              class="px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
+                                member.status === 'Confirmado'
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                  : member.status === 'Juntando Grana'
+                                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                    : 'bg-slate-800 text-gray-300'
+                              }"
+                            >
+                              ${escapeHtml(member.status)}
+                            </button>
+                            <button
+                              type="button"
+                              onclick="removeMember('${trip.id}', '${member.id}')"
+                              class="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                              title="Remover da lista"
+                            >
+                              <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                            </button>
+                          </div>
                         </div>
                       `).join('')}
                     </div>
@@ -1749,6 +1904,28 @@
       input.value = '';
     }
 
+    function handleUpdateGoal(e, tripId) {
+      e.preventDefault();
+      const input = document.getElementById(`goal-input-${tripId}`);
+      if (!input) return;
+      const newGoal = Math.max(0, Number(input.value) || 0);
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.goalPerPerson = newGoal;
+      saveState();
+      renderAll();
+      showToast(`Meta atualizada para ${formatCurrency(newGoal)} por pessoa!`, 'success');
+    }
+
+    function resetSavedVault(tripId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.savedPerPerson = 0;
+      saveState();
+      renderAll();
+      showToast('Valor guardado zerado.', 'info');
+    }
+
     function toggleCheckpoint(tripId, cpId) {
       const trip = state.trips.find(t => t.id === tripId);
       if (!trip) return;
@@ -1757,6 +1934,45 @@
       saveState();
       renderTripsList();
       refreshIcons();
+    }
+
+    function startEditCheckpoint(tripId, cpId) {
+      editingCheckpointKey = `${tripId}:${cpId}`;
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function cancelEditCheckpoint() {
+      editingCheckpointKey = null;
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function handleSaveEditCheckpoint(e, tripId, cpId) {
+      e.preventDefault();
+      const input = document.getElementById(`edit-cp-input-${cpId}`);
+      const text = (input ? input.value : '').trim();
+      if (!text) return;
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      const cp = (trip.checkpoints || []).find(c => c.id === cpId);
+      if (cp) cp.text = text;
+      editingCheckpointKey = null;
+      saveState();
+      renderTripsList();
+      refreshIcons();
+      showToast('Tarefa atualizada!', 'success');
+    }
+
+    function deleteCheckpoint(tripId, cpId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.checkpoints = (trip.checkpoints || []).filter(c => c.id !== cpId);
+      if (editingCheckpointKey === `${tripId}:${cpId}`) editingCheckpointKey = null;
+      saveState();
+      renderTripsList();
+      refreshIcons();
+      showToast('Tarefa removida.', 'info');
     }
 
     function handleAddCheckpoint(e, tripId) {
@@ -1786,16 +2002,63 @@
       refreshIcons();
     }
 
+    function startEditIdea(tripId, ideaId) {
+      editingIdeaKey = `${tripId}:${ideaId}`;
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function cancelEditIdea() {
+      editingIdeaKey = null;
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function handleSaveEditIdea(e, tripId, ideaId) {
+      e.preventDefault();
+      const textInput = document.getElementById(`edit-idea-text-${ideaId}`);
+      const tagInput = document.getElementById(`edit-idea-tag-${ideaId}`);
+      const text = (textInput ? textInput.value : '').trim();
+      const tag = (tagInput ? tagInput.value : '').trim() || 'Sugestão';
+      if (!text) return;
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      const idea = (trip.ideas || []).find(i => i.id === ideaId);
+      if (idea) {
+        idea.text = text;
+        idea.tag = tag;
+      }
+      editingIdeaKey = null;
+      saveState();
+      renderTripsList();
+      refreshIcons();
+      showToast('Ideia atualizada!', 'success');
+    }
+
+    function deleteIdea(tripId, ideaId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.ideas = (trip.ideas || []).filter(i => i.id !== ideaId);
+      if (editingIdeaKey === `${tripId}:${ideaId}`) editingIdeaKey = null;
+      saveState();
+      renderTripsList();
+      refreshIcons();
+      showToast('Ideia removida.', 'info');
+    }
+
     function handleAddIdea(e, tripId) {
       e.preventDefault();
       const input = document.getElementById(`new-idea-${tripId}`);
+      const tagInput = document.getElementById(`new-idea-tag-${tripId}`);
       const text = (input.value || '').trim();
+      const tag = (tagInput && tagInput.value ? tagInput.value : '').trim() || 'Sugestão';
       if (!text) return;
       const trip = state.trips.find(t => t.id === tripId);
       if (!trip) return;
       trip.ideas = trip.ideas || [];
-      trip.ideas.push({ id: 'id-' + Date.now(), text, tag: 'Sugestão', votes: 1, voted: true });
+      trip.ideas.push({ id: 'id-' + Date.now(), text, tag, votes: 1, voted: true });
       input.value = '';
+      if (tagInput) tagInput.value = '';
       saveState();
       renderTripsList();
       refreshIcons();
@@ -1809,6 +2072,15 @@
       if (!member) return;
       const idx = statuses.indexOf(member.status);
       member.status = statuses[(idx + 1) % statuses.length];
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function removeMember(tripId, memberId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.squad = (trip.squad || []).filter(m => m.id !== memberId);
       saveState();
       renderTripsList();
       refreshIcons();
@@ -1944,7 +2216,7 @@
           { id: 'cp-' + Date.now() + '-1', text: 'Alinhar datas e orçamento com o grupo', done: false }
         ],
         ideas: [],
-        squad: [{ id: 'sq-' + Date.now() + '-1', name: 'Aedriun', status: 'Confirmado' }]
+        squad: [{ id: 'sq-' + Date.now() + '-1', name: 'DR', status: 'Confirmado' }]
       });
 
       e.target.reset();
