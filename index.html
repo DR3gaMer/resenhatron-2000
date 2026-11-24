@@ -89,25 +89,6 @@
       <!-- Ações Compactas -->
       <div class="flex items-center gap-2 shrink-0">
         <button
-          onclick="openFirebaseModal()"
-          id="btn-sync-status"
-          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-200 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer"
-          title="Configurar sincronização em tempo real com a galera"
-        >
-          <i data-lucide="radio" id="sync-status-icon" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span id="sync-status-label" class="hidden sm:inline">Sincronizar</span>
-        </button>
-
-        <button
-          onclick="openPhotosModal()"
-          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer"
-          title="Gerenciar fotos da galera no fundo"
-        >
-          <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i>
-          <span>Fotos <span class="hidden sm:inline">da Galera</span></span>
-        </button>
-
-        <button
           onclick="openShareModal()"
           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer"
           title="Compartilhar link ou backup"
@@ -152,227 +133,9 @@
   <footer class="border-t border-slate-800/70 py-5 mt-auto">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
       <span>RESENHATRON 2000 • Feito para a galera não perder o ritmo das viagens</span>
-      <span id="footer-sync-caption" class="font-mono text-gray-600">Modo local ativo • Clique em Sincronizar para tempo real</span>
+      <span id="footer-sync-caption" class="font-mono text-gray-600">Sincronizado automaticamente com a galera</span>
     </div>
   </footer>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL: SINCRONIZAÇÃO EM TEMPO REAL (CHAVES / FALLBACK LOCAL)         -->
-  <!-- ===================================================================== -->
-  <div id="firebase-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <div onclick="closeFirebaseModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
-
-    <div class="relative w-full max-w-xl glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto space-y-5">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-            <i data-lucide="radio" class="w-5 h-5 text-emerald-400"></i>
-          </div>
-          <div>
-            <h3 class="text-base sm:text-lg font-bold text-white">Sincronização ao Vivo da Galera</h3>
-            <p class="text-xs text-gray-400">Todos veem cliques no Resenhômetro, aportes e ideias na hora</p>
-          </div>
-        </div>
-        <button onclick="closeFirebaseModal()" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <div id="fb-status-banner" class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-gray-300 flex items-center justify-between gap-2">
-        <span id="fb-status-detail">Verificando conexão...</span>
-        <span id="fb-uid-badge" class="font-mono text-[10px] text-gray-500 truncate max-w-[160px]"></span>
-      </div>
-
-      <div id="fb-rules-help" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-2">
-        <p class="font-bold">⚠️ Permissão bloqueada no Firestore (Missing or insufficient permissions)</p>
-        <p class="text-[11px] text-amber-100/90">No Console do Firebase, vá em <strong>Firestore Database → Regras (Rules)</strong>, cole o código abaixo e clique em <strong>Publicar</strong>:</p>
-        <pre class="p-2.5 rounded-lg bg-[#080B12] border border-slate-800 text-[10px] font-mono text-emerald-300 overflow-x-auto">rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /artifacts/{appId}/public/data/{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}</pre>
-      </div>
-
-      <form onsubmit="handleSaveFirebaseConfig(event)" class="space-y-3">
-        <div class="flex items-center justify-between">
-          <label class="block text-xs font-bold uppercase tracking-wider text-cyan-400">Configuração do Projeto (JSON)</label>
-          <button type="button" onclick="fillExampleFirebaseHint()" class="text-[11px] text-gray-400 hover:text-cyan-300 underline cursor-pointer">
-            Ver exemplo de formato
-          </button>
-        </div>
-
-        <textarea
-          id="fb-config-json"
-          rows="5"
-          placeholder='Cole aqui o objeto de configuração do projeto Firebase, ex:
-{
-  "apiKey": "...",
-  "authDomain": "...",
-  "projectId": "...",
-  "storageBucket": "...",
-  "messagingSenderId": "...",
-  "appId": "..."
-}'
-          class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 focus:border-cyan-400 focus:outline-none text-xs font-mono text-gray-200 placeholder-gray-600"
-        ></textarea>
-
-        <div>
-          <label class="block text-xs font-semibold text-gray-400 mb-1">Código da Sala da Galera (Room ID)</label>
-          <input
-            type="text"
-            id="fb-room-id"
-            value="resenhatron-galera-principal"
-            placeholder="Ex: resenhatron-galera-principal"
-            class="w-full px-3.5 py-2 rounded-xl bg-[#080B12] border border-slate-700 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white"
-          />
-          <p class="text-[11px] text-gray-500 mt-1">Todos os amigos devem usar o mesmo Código da Sala para compartilharem os mesmos dados ao vivo.</p>
-        </div>
-
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
-          <button
-            type="button"
-            onclick="useLocalFallbackMode()"
-            class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-300 bg-slate-800 hover:bg-slate-700 cursor-pointer"
-          >
-            Usar Modo Local (Sem Nuvem)
-          </button>
-
-          <button
-            type="submit"
-            class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 cursor-pointer"
-          >
-            Conectar &amp; Sincronizar Ao Vivo
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ===================================================================== -->
-  <!-- MODAL: GERENCIAR FOTOS DA GALERA (DRIVE + UPLOAD + /FOTOS VERCEL)     -->
-  <!-- ===================================================================== -->
-  <div id="photos-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <div onclick="closePhotosModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
-
-    <div class="relative w-full max-w-2xl glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto space-y-5">
-      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
-            <i data-lucide="camera" class="w-5 h-5 text-amber-400"></i>
-          </div>
-          <div>
-            <h3 class="text-base sm:text-lg font-bold text-white">Fotos da Galera no Fundo</h3>
-            <p class="text-xs text-gray-400">Suporta 200+ fotos otimizadas localmente, links do Google Drive ou pasta /fotos</p>
-          </div>
-        </div>
-        <button onclick="closePhotosModal()" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Adicionar via Link (Google Drive ou URL direta) -->
-      <form onsubmit="handleAddPhotoUrl(event)" class="space-y-3">
-        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400">Colar Link de Foto (Google Drive ou URL)</label>
-        <div class="flex flex-col sm:flex-row gap-2">
-          <input
-            type="url"
-            id="photo-url-input"
-            required
-            placeholder="https://drive.google.com/file/d/... ou link direto da imagem"
-            class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-gray-600"
-          />
-          <input
-            type="text"
-            id="photo-caption-input"
-            placeholder="Legenda (ex: Churras 2025)"
-            class="sm:w-44 px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-gray-600"
-          />
-          <button
-            type="submit"
-            class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 shrink-0 cursor-pointer"
-          >
-            Adicionar
-          </button>
-        </div>
-        <p class="text-[11px] text-gray-500">
-          Dica Google Drive: deixe o arquivo como <strong class="text-gray-300">"Qualquer pessoa com o link"</strong> e cole o link aqui; o app converte automaticamente.
-        </p>
-      </form>
-
-      <!-- Upload Local Múltiplo -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
-        <div>
-          <span class="block text-xs font-semibold text-gray-300">Ou envie direto do celular / computador (200+ fotos)</span>
-          <span class="text-[11px] text-gray-500">Compressão automática (1280px, ~120KB) + banco IndexedDB local</span>
-        </div>
-        <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer transition-colors">
-          <i data-lucide="upload" class="w-4 h-4 text-cyan-400"></i>
-          <span>Selecionar Fotos</span>
-          <input type="file" accept="image/*" multiple onchange="handleLocalPhotoUpload(event)" class="hidden" />
-        </label>
-      </div>
-
-      <!-- Barra de Progresso de Upload para Lotes Grandes -->
-      <div id="photo-upload-progress" class="hidden space-y-1.5 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
-        <div class="flex items-center justify-between text-xs font-mono">
-          <span id="photo-progress-text" class="text-cyan-300">Otimizando fotos...</span>
-          <span id="photo-progress-pct" class="text-amber-400 font-bold">0%</span>
-        </div>
-        <div class="h-2 w-full rounded-full bg-slate-950 overflow-hidden">
-          <div id="photo-progress-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-150" style="width: 0%"></div>
-        </div>
-      </div>
-
-      <!-- Pasta /fotos na Vercel (Opcional) -->
-      <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3 text-xs space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="font-bold text-gray-200 flex items-center gap-1.5">
-            <i data-lucide="folder-git-2" class="w-4 h-4 text-emerald-400"></i>
-            <span>Pasta <code class="text-emerald-300">/fotos</code> na Vercel (Para todos verem as fotos sem reenviar)</span>
-          </span>
-        </div>
-        <p class="text-[11px] text-gray-400 leading-relaxed">
-          Se publicar na Vercel com uma pasta <code class="text-gray-300">fotos/</code>, liste os nomes (um por linha, ex: <code class="text-gray-300">foto1.jpg</code>) para carregar direto de <code class="text-gray-300">/fotos/...</code>:
-        </p>
-        <div class="flex flex-col sm:flex-row gap-2">
-          <textarea
-            id="vercel-folder-names"
-            rows="2"
-            placeholder="Ex: praia-2025.jpg&#10;role-sabado.jpg"
-            class="flex-1 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-gray-200 focus:border-emerald-400 focus:outline-none"
-          ></textarea>
-          <button
-            type="button"
-            onclick="applyVercelFolderPhotos()"
-            class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 shrink-0 cursor-pointer"
-          >
-            Carregar /fotos
-          </button>
-        </div>
-      </div>
-
-      <!-- Galeria Atual -->
-      <div class="space-y-2 pt-2 border-t border-slate-800/80">
-        <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-gray-400">
-            Fotos Ativas no Carrossel (<span id="photos-modal-count">0</span>)
-          </span>
-          <button
-            type="button"
-            onclick="restoreDefaultPhotos()"
-            class="text-[11px] text-gray-400 hover:text-amber-300 underline cursor-pointer"
-          >
-            Restaurar fotos padrão
-          </button>
-        </div>
-
-        <div id="photos-grid-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- ===================================================================== -->
   <!-- MODAL: DEFINIR DATAS DO EVENTO & ABERTURA DE INGRESSOS                -->
@@ -828,7 +591,7 @@ service cloud.firestore {
               db = null;
               updateSyncUiStatus('permission-denied', currentUser?.uid || '');
               if (typeof window.showToast === 'function') {
-                window.showToast('Permissão negada no Firestore. Clique em "Permissão" no topo para ver a regra.', 'danger');
+                window.showToast('Permissão negada no Firestore. Verifique as regras do banco.', 'danger');
               }
               return;
             }
@@ -843,7 +606,7 @@ service cloud.firestore {
           db = null;
           updateSyncUiStatus('permission-denied', currentUser?.uid || '');
           if (typeof window.showToast === 'function') {
-            window.showToast('Permissão negada no Firestore. Clique em "Permissão" no topo para corrigir.', 'danger');
+            window.showToast('Permissão negada no Firestore. Verifique as regras do banco.', 'danger');
           }
           return;
         }
