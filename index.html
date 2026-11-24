@@ -752,6 +752,43 @@ service cloud.firestore {
             updatedAt: new Date().toISOString(),
             updatedBy: currentUser.uid
           });
+        } else if (existingSnap.exists()) {
+          // Mescla automaticamente novos eventos padrão e atualiza locais/datas oficiais definidas no código
+          const remoteData = existingSnap.data();
+          if (remoteData && Array.isArray(remoteData.trips)) {
+            const defaultsMap = new Map((window.DEFAULT_TRIPS_REF || []).map(dt => [dt.id, dt]));
+            const existingIds = new Set(remoteData.trips.map(t => t.id));
+            let hasChanges = false;
+
+            const updatedTrips = remoteData.trips.map(t => {
+              if (t.id === 'trip-ano-novo-2027' && t.destination !== 'Mansão do Nickas') {
+                hasChanges = true;
+                return { ...t, destination: 'Mansão do Nickas' };
+              }
+              if (t.id === 'trip-copa-feminina-2027' && (t.targetDate !== '2027-06-29' || !String(t.destination || '').includes('Neo Química Arena'))) {
+                const defWc = defaultsMap.get('trip-copa-feminina-2027');
+                hasChanges = true;
+                return {
+                  ...t,
+                  title: defWc ? defWc.title : t.title,
+                  destination: 'Neo Química Arena — São Paulo, SP',
+                  estimatedPeriod: defWc ? defWc.estimatedPeriod : t.estimatedPeriod,
+                  targetDate: '2027-06-29'
+                };
+              }
+              return t;
+            });
+
+            const missingDefaults = (window.DEFAULT_TRIPS_REF || []).filter(dt => !existingIds.has(dt.id));
+            if (missingDefaults.length > 0 || hasChanges) {
+              const mergedTrips = [...missingDefaults, ...updatedTrips];
+              await setDoc(roomDocRef, {
+                trips: mergedTrips,
+                updatedAt: new Date().toISOString(),
+                updatedBy: currentUser.uid
+              }, { merge: true });
+            }
+          }
         }
 
         updateSyncUiStatus('live', currentUser.uid);
@@ -934,35 +971,68 @@ service cloud.firestore {
     const IDB_STORE = 'group_photos';
 
     const DEFAULT_PHOTOS = [
-      {
-        id: 'ph-1',
-        url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1600&q=80',
-        caption: 'Nossa galera reunida • Próximo destino vem aí!'
-      },
-      {
-        id: 'ph-2',
-        url: 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=1600&q=80',
-        caption: 'Estrada, risadas e planos para os próximos anos'
-      },
-      {
-        id: 'ph-3',
-        url: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1600&q=80',
-        caption: 'Memórias que ficam • Rumo à VNL e ao Chile'
-      },
-      {
-        id: 'ph-4',
-        url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1600&q=80',
-        caption: 'Explorando lugares novos juntos'
-      }
+      { id: 'ph-1', url: './fotos/DSC04544.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-2', url: './fotos/DSC04547.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-3', url: './fotos/DSC04582.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-4', url: './fotos/DSC04584.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-5', url: './fotos/DSC04594.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-6', url: './fotos/DSC04595.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-7', url: './fotos/000_0943.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-8', url: './fotos/000_0949.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-9', url: './fotos/000_0961.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-10', url: './fotos/000_0962.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-11', url: './fotos/000_0998.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-12', url: './fotos/DSC04364.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-13', url: './fotos/DSC04370.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-14', url: './fotos/DSC04472.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-15', url: './fotos/DSC04505.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-16', url: './fotos/DSC04506.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-17', url: './fotos/DSC04507.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-18', url: './fotos/DSC04508.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-19', url: './fotos/DSC04519.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-20', url: './fotos/DSC04521.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' },
+      { id: 'ph-21', url: './fotos/DSC04530.JPG', caption: 'Memórias da Galera • RESENHATRON 2000' }
     ];
 
     const DEFAULT_TRIPS = [
+      {
+        id: 'trip-ano-novo-2027',
+        title: 'Réveillon / Ano Novo 2027',
+        destination: 'Mansão do Nickas',
+        category: 'Praia & Resenha',
+        isHero: true,
+        isDateTBA: false,
+        estimatedPeriod: 'Virada 31/12/2026 → 01/01/2027',
+        targetDate: '2026-12-31',
+        ticketSale: null,
+        hypeLevel: 0,
+        boosts: 0,
+        goalPerPerson: 1200,
+        savedPerPerson: 0,
+        deposits: [],
+        checkpoints: [
+          { id: 'cp-ny-1', text: 'Alinhar logística de ida e horários na Mansão do Nickas', done: false },
+          { id: 'cp-ny-2', text: 'Fechar lista final da galera confirmada', done: false },
+          { id: 'cp-ny-3', text: 'Organizar colchões, quartos e estrutura para o grupo', done: false },
+          { id: 'cp-ny-4', text: 'Dividir lista de compras de bebidas e churrasco', done: false }
+        ],
+        ideas: [
+          { id: 'id-ny-1', text: 'Churrasco da virada + som da galera até amanhecer', tag: 'Resenha', votes: 0, voted: false },
+          { id: 'id-ny-2', text: 'Brinde da virada todos de branco na Mansão do Nickas', tag: 'Clássico', votes: 0, voted: false }
+        ],
+        squad: [
+          { id: 'sq-ny-1', name: 'Aedriun', status: 'Confirmado' },
+          { id: 'sq-ny-2', name: 'Lucas', status: 'Talvez' },
+          { id: 'sq-ny-3', name: 'Mariana', status: 'Talvez' },
+          { id: 'sq-ny-4', name: 'Pedro', status: 'Talvez' }
+        ]
+      },
       {
         id: 'trip-vnl-2027',
         title: 'Liga das Nações de Vôlei Feminino (VNL)',
         destination: 'Brasil (Sede a confirmar)',
         category: 'Esporte & Evento',
-        isHero: true,
+        isHero: false,
         isDateTBA: true,
         estimatedPeriod: 'Meio de 2027 (Previsão)',
         targetDate: '2027-06-15',
@@ -992,6 +1062,42 @@ service cloud.firestore {
           { id: 'sq-vnl-2', name: 'Lucas', status: 'Talvez' },
           { id: 'sq-vnl-3', name: 'Mariana', status: 'Talvez' },
           { id: 'sq-vnl-4', name: 'Pedro', status: 'Talvez' }
+        ]
+      },
+      {
+        id: 'trip-copa-feminina-2027',
+        title: 'Copa do Mundo Feminina 2027 — Brasil (2ª Rodada)',
+        destination: 'Neo Química Arena — São Paulo, SP',
+        category: 'Esporte & Evento',
+        isHero: false,
+        isDateTBA: false,
+        estimatedPeriod: 'Terça-feira, 29/06/2027 • 2º jogo do Brasil na Fase de Grupos',
+        targetDate: '2027-06-29',
+        ticketSale: {
+          isTBA: false,
+          openDate: '2026-12-01',
+          note: '1ª Fase FIFA.com/tickets abre 01/12/2026 às 10h (Passaporte Seleção a partir de R$ 205); sorteio dos grupos em 11/12/2026'
+        },
+        hypeLevel: 0,
+        boosts: 0,
+        goalPerPerson: 2200,
+        savedPerPerson: 0,
+        deposits: [],
+        checkpoints: [
+          { id: 'cp-wc-1', text: 'Criar conta FIFA ID em FIFA.com/tickets antes de 01/12/2026', done: false },
+          { id: 'cp-wc-2', text: 'Entrar na fila em 01/12/2026 às 10h (Passaporte Seleção ou Passaporte Flex)', done: false },
+          { id: 'cp-wc-3', text: 'Garantir ingressos para Brasil x 2º adversário (29/06/2027) em Itaquera', done: false },
+          { id: 'cp-wc-4', text: 'Organizar transporte/bate-volta para a Neo Química Arena', done: false }
+        ],
+        ideas: [
+          { id: 'id-wc-1', text: 'Ver a Seleção Brasileira na Neo Química Arena pela Copa do Mundo', tag: 'Histórico', votes: 0, voted: false },
+          { id: 'id-wc-2', text: 'Esquenta da galera antes do jogo em São Paulo', tag: 'Resenha', votes: 0, voted: false }
+        ],
+        squad: [
+          { id: 'sq-wc-1', name: 'Aedriun', status: 'Confirmado' },
+          { id: 'sq-wc-2', name: 'Lucas', status: 'Talvez' },
+          { id: 'sq-wc-3', name: 'Mariana', status: 'Talvez' },
+          { id: 'sq-wc-4', name: 'Pedro', status: 'Talvez' }
         ]
       },
       {
@@ -1025,11 +1131,11 @@ service cloud.firestore {
           { id: 'sq-ch-1', name: 'Aedriun', status: 'Confirmado' },
           { id: 'sq-ch-2', name: 'Lucas', status: 'Talvez' },
           { id: 'sq-ch-3', name: 'Mariana', status: 'Talvez' },
-          { id: 'sq-ch-4', name: 'Pedro', status: 'Talvez' },
-          { id: 'sq-ch-5', name: 'Sofia', status: 'Talvez' }
+          { id: 'sq-ch-4', name: 'Pedro', status: 'Talvez' }
         ]
       }
     ];
+    window.DEFAULT_TRIPS_REF = DEFAULT_TRIPS;
 
     // =========================================================================
     // 2. INDEXEDDB PARA 200+ FOTOS + ESTADO GLOBAL
@@ -1225,8 +1331,11 @@ service cloud.firestore {
         try {
           const saved = localStorage.getItem(STORAGE_KEY);
           const parsed = saved ? JSON.parse(saved) : null;
-          if (parsed && Array.isArray(parsed.photos) && parsed.photos.length > 0) {
-            state.photos = shuffleArray(parsed.photos);
+          const savedPhotos = (parsed && Array.isArray(parsed.photos)) ? parsed.photos : [];
+          const hasOnlyStockUnsplash = savedPhotos.length > 0 && savedPhotos.every(p => String(p.url || '').includes('images.unsplash.com'));
+
+          if (savedPhotos.length > 0 && !hasOnlyStockUnsplash) {
+            state.photos = shuffleArray(savedPhotos);
           } else {
             state.photos = shuffleArray(DEFAULT_PHOTOS);
           }
@@ -1448,11 +1557,14 @@ service cloud.firestore {
                         ${escapeHtml(ticket.note || 'Data de abertura ainda não divulgada')}
                       </p>
                     ` : `
-                      <div class="flex items-center justify-between text-xs">
-                        <span class="text-gray-400">Abertura: <strong class="text-white">${formatDateBR(ticket.openDate)}</strong></span>
-                        <span id="hero-ticket-countdown" class="font-mono font-bold text-emerald-400">
-                          ${ticketCd ? (ticketCd.passed ? 'Vendas Abertas!' : `Faltam ${ticketCd.days}d ${String(ticketCd.hours).padStart(2, '0')}h`) : ''}
-                        </span>
+                      <div class="space-y-1">
+                        <div class="flex items-center justify-between text-xs">
+                          <span class="text-gray-400">Abertura: <strong class="text-white">${formatDateBR(ticket.openDate)}</strong></span>
+                          <span id="hero-ticket-countdown" class="font-mono font-bold text-emerald-400">
+                            ${ticketCd ? (ticketCd.passed ? 'Vendas Abertas!' : `Faltam ${ticketCd.days}d ${String(ticketCd.hours).padStart(2, '0')}h`) : ''}
+                          </span>
+                        </div>
+                        ${ticket.note ? `<p class="text-[11px] text-gray-400 leading-snug">${escapeHtml(ticket.note)}</p>` : ''}
                       </div>
                     `}
                   </div>
@@ -1610,101 +1722,95 @@ service cloud.firestore {
                   <i data-lucide="map-pin" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
                   <span>${escapeHtml(trip.destination)}</span>
                 </p>
+                ${trip.ticketSale ? `
+                  <div class="inline-flex flex-wrap items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-[11px] text-cyan-200 mt-1">
+                    <i data-lucide="ticket" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+                    <span>${trip.ticketSale.isTBA || !trip.ticketSale.openDate
+                      ? escapeHtml(trip.ticketSale.note || 'Ingressos: data a definir')
+                      : `Ingressos abrem em <strong>${formatDateBR(trip.ticketSale.openDate)}</strong> • ${escapeHtml(trip.ticketSale.note || '')}`
+                    }</span>
+                  </div>
+                ` : ''}
               </div>
 
-              <!-- Resumo Rápido + Botões -->
-              <div class="flex flex-wrap items-center gap-3 sm:justify-end">
-                <div class="w-36 space-y-1">
-                  <div class="flex items-center justify-between text-[11px] font-mono">
-                    <span class="text-gray-400">Cofre</span>
-                    <span class="text-emerald-400 font-bold">${vaultPct}%</span>
-                  </div>
-                  <div class="h-1.5 w-full rounded-full bg-slate-900 overflow-hidden">
-                    <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style="width: ${vaultPct}%"></div>
-                  </div>
+              <!-- Ações Rápidas do Card -->
+              <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                <div class="text-right mr-1 hidden md:block">
+                  <span class="block text-[11px] text-gray-400">Cofre (${vaultPct}%)</span>
+                  <span class="font-mono text-xs font-bold text-emerald-400">${formatCurrency(trip.savedPerPerson)} / ${formatCurrency(trip.goalPerPerson)}</span>
                 </div>
 
                 <button
                   onclick="boostTripHype('${trip.id}', event)"
-                  class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 active:scale-95 transition-all cursor-pointer"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 shadow-md shadow-amber-500/15 active:scale-95 transition-all cursor-pointer"
                 >
                   <span>🔥 Resenhômetro</span>
-                  <span class="font-mono font-extrabold text-amber-300">${trip.boosts || 0}</span>
+                  <span class="px-1.5 py-0.5 rounded bg-black/20 font-mono text-[11px]">${trip.boosts || 0}</span>
                 </button>
 
                 <button
                   onclick="toggleTripDetails('${trip.id}')"
-                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-200 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition-all cursor-pointer"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-200 bg-slate-900 hover:bg-slate-800 border border-slate-700 transition-colors cursor-pointer"
                 >
-                  <span>${isExpanded ? 'Ocultar Detalhes' : 'Detalhes & Cofre'}</span>
+                  <span>Detalhes &amp; Cofre</span>
                   <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-cyan-400"></i>
                 </button>
               </div>
             </div>
 
-            <!-- Área Expansível (Oculta por Padrão) -->
-            ${isExpanded ? `
-              <div class="border-t border-slate-800/90 bg-[#090D16]/90 p-4 sm:p-5 space-y-4">
-                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
-                  <div class="flex flex-wrap gap-1.5">
-                    <button
-                      onclick="switchTripTab('${trip.id}', 'vault')"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'vault' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
-                    >
-                      💰 Cofre (${formatCurrency(trip.savedPerPerson)})
-                    </button>
-                    <button
-                      onclick="switchTripTab('${trip.id}', 'checklist')"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'checklist' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
-                    >
-                      ✅ Checklist (${doneCheckpoints}/${totalCheckpoints})
-                    </button>
-                    <button
-                      onclick="switchTripTab('${trip.id}', 'ideas')"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'ideas' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
-                    >
-                      💡 Mural de Ideias (${(trip.ideas || []).length})
-                    </button>
-                    <button
-                      onclick="switchTripTab('${trip.id}', 'squad')"
-                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'squad' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
-                    >
-                      👥 Galera (${(trip.squad || []).length})
-                    </button>
-                  </div>
+            <!-- Barra de Progresso Discreta -->
+            <div class="px-4 sm:px-5 pb-3">
+              <div class="h-1.5 w-full rounded-full bg-slate-900 overflow-hidden">
+                <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-500" style="width: ${vaultPct}%"></div>
+              </div>
+            </div>
 
-                  <div class="flex items-center gap-2">
-                    ${!trip.isHero ? `
-                      <button
-                        onclick="setTripAsHero('${trip.id}')"
-                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 cursor-pointer"
-                      >
-                        Fixar no Topo
-                      </button>
-                    ` : ''}
-                    <button
-                      onclick="deleteTrip('${trip.id}')"
-                      class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 cursor-pointer"
-                    >
-                      ${deleteConfirmTripId === trip.id ? 'Confirmar Exclusão?' : 'Excluir'}
-                    </button>
-                  </div>
+            <!-- Painel Expansível (Dropdown) -->
+            ${isExpanded ? `
+              <div class="border-t border-slate-800/90 bg-[#0A0E17]/95 p-4 sm:p-5 space-y-4">
+                <!-- Navegação de Abas -->
+                <div class="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+                  <button
+                    onclick="switchTripTab('${trip.id}', 'vault')"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${activeTab === 'vault' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-gray-400 hover:text-white bg-slate-900'}"
+                  >
+                    💰 Cofre (${formatCurrency(trip.savedPerPerson)})
+                  </button>
+                  <button
+                    onclick="switchTripTab('${trip.id}', 'checkpoints')"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${activeTab === 'checkpoints' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'text-gray-400 hover:text-white bg-slate-900'}"
+                  >
+                    ✅ Checklist (${doneCheckpoints}/${totalCheckpoints})
+                  </button>
+                  <button
+                    onclick="switchTripTab('${trip.id}', 'ideas')"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${activeTab === 'ideas' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-gray-400 hover:text-white bg-slate-900'}"
+                  >
+                    💡 Ideias (${(trip.ideas || []).length})
+                  </button>
+                  <button
+                    onclick="switchTripTab('${trip.id}', 'squad')"
+                    class="px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${activeTab === 'squad' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-gray-400 hover:text-white bg-slate-900'}"
+                  >
+                    👥 Galera (${(trip.squad || []).length})
+                  </button>
                 </div>
 
+                <!-- ABA 1: COFRE -->
                 ${activeTab === 'vault' ? `
                   <div class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
-                        <span class="block text-[11px] text-gray-400">Guardado / Meta (Por Pessoa)</span>
-                        <span class="font-mono text-sm font-bold text-white">${formatCurrency(trip.savedPerPerson)} <span class="text-gray-500">de ${formatCurrency(trip.goalPerPerson)}</span></span>
+                        <span class="block text-[11px] text-gray-400">Guardado por pessoa</span>
+                        <span class="font-mono text-base font-extrabold text-emerald-400">${formatCurrency(trip.savedPerPerson)}</span>
                       </div>
                       <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
-                        <span class="block text-[11px] text-gray-400">Falta Juntar</span>
-                        <span class="font-mono text-sm font-bold text-amber-300">${formatCurrency(remainingAmount)}</span>
+                        <span class="block text-[11px] text-gray-400">Meta total por pessoa</span>
+                        <span class="font-mono text-base font-extrabold text-white">${formatCurrency(trip.goalPerPerson)}</span>
                       </div>
                       <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
-                        <span class="block text-[11px] text-gray-400">Sugestão Mensal (~${monthsLeft} meses)</span>
-                        <span class="font-mono text-sm font-bold text-emerald-400">${formatCurrency(monthlySuggested)}/mês</span>
+                        <span class="block text-[11px] text-gray-400">Sugestão mensal (${monthsLeft}m)</span>
+                        <span class="font-mono text-base font-extrabold text-cyan-300">${formatCurrency(monthlySuggested)}/mês</span>
                       </div>
                     </div>
 
@@ -1712,58 +1818,67 @@ service cloud.firestore {
                       <button onclick="addDeposit('${trip.id}', 50)" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer">+ R$ 50</button>
                       <button onclick="addDeposit('${trip.id}', 100)" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer">+ R$ 100</button>
                       <button onclick="addDeposit('${trip.id}', 250)" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer">+ R$ 250</button>
-                      <form onsubmit="handleCustomDeposit(event, '${trip.id}')" class="flex items-center gap-1.5">
+
+                      <form onsubmit="handleCustomDeposit(event, '${trip.id}')" class="flex items-center gap-2 ml-auto">
                         <input
                           type="number"
                           id="custom-deposit-${trip.id}"
                           placeholder="Outro valor (R$)"
-                          class="w-32 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:border-emerald-400 focus:outline-none"
+                          class="w-32 px-3 py-1.5 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-white focus:border-emerald-400 focus:outline-none"
                         />
-                        <button type="submit" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 cursor-pointer">Guardar</button>
+                        <button type="submit" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 cursor-pointer">
+                          Guardar
+                        </button>
                       </form>
                     </div>
                   </div>
                 ` : ''}
 
-                ${activeTab === 'checklist' ? `
+                <!-- ABA 2: CHECKLIST -->
+                ${activeTab === 'checkpoints' ? `
                   <div class="space-y-3">
                     <div class="space-y-2">
                       ${(trip.checkpoints || []).map(cp => `
-                        <label class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 cursor-pointer">
+                        <label class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 hover:border-slate-700 cursor-pointer">
                           <input
                             type="checkbox"
                             ${cp.done ? 'checked' : ''}
                             onchange="toggleCheckpoint('${trip.id}', '${cp.id}')"
-                            class="w-4 h-4 rounded accent-cyan-400 cursor-pointer"
+                            class="w-4 h-4 rounded accent-cyan-400"
                           />
                           <span class="text-xs ${cp.done ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(cp.text)}</span>
                         </label>
                       `).join('')}
                     </div>
+
                     <form onsubmit="handleAddCheckpoint(event, '${trip.id}')" class="flex gap-2">
                       <input
                         type="text"
                         id="new-cp-${trip.id}"
-                        placeholder="Adicionar nova tarefa de planejamento..."
-                        class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                        placeholder="Adicionar nova tarefa..."
+                        class="flex-1 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"
                       />
-                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer">Adicionar</button>
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer">
+                        Adicionar
+                      </button>
                     </form>
                   </div>
                 ` : ''}
 
+                <!-- ABA 3: IDEIAS -->
                 ${activeTab === 'ideas' ? `
                   <div class="space-y-3">
                     <div class="space-y-2">
+                      ${(trip.ideas || []).length === 0 ? '<p class="text-xs text-gray-500">Nenhuma ideia sugerida ainda. Mande a primeira!</p>' : ''}
                       ${(trip.ideas || []).map(idea => `
-                        <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                        <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
                           <div class="space-y-0.5">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">${escapeHtml(idea.tag || 'Ideia')}</span>
-                            <p class="text-xs text-gray-200">${escapeHtml(idea.text)}</p>
+                            <span class="text-xs text-gray-200 block">${escapeHtml(idea.text)}</span>
+                            <span class="text-[10px] font-mono text-amber-300/80">${escapeHtml(idea.tag || 'Sugestão')}</span>
                           </div>
                           <button
                             onclick="voteIdea('${trip.id}', '${idea.id}')"
-                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold ${idea.voted ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-amber-300 hover:bg-slate-700'} cursor-pointer shrink-0"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-colors cursor-pointer ${idea.voted ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-gray-300 hover:bg-slate-700'}"
                           >
                             <span>▲</span>
                             <span>${idea.votes || 0}</span>
@@ -1771,32 +1886,36 @@ service cloud.firestore {
                         </div>
                       `).join('')}
                     </div>
-                    <form onsubmit="handleAddIdea(event, '${trip.id}')" class="flex flex-col sm:flex-row gap-2">
+
+                    <form onsubmit="handleAddIdea(event, '${trip.id}')" class="flex gap-2">
                       <input
                         type="text"
                         id="new-idea-${trip.id}"
                         placeholder="Sugerir passeio, rolê ou experiência..."
-                        class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-amber-400 focus:outline-none"
+                        class="flex-1 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-amber-400 focus:outline-none"
                       />
-                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 cursor-pointer">Sugerir</button>
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 cursor-pointer">
+                        Sugerir
+                      </button>
                     </form>
                   </div>
                 ` : ''}
 
+                <!-- ABA 4: GALERA & CONFIG -->
                 ${activeTab === 'squad' ? `
-                  <div class="space-y-3">
+                  <div class="space-y-4">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       ${(trip.squad || []).map(member => `
-                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
                           <span class="text-xs font-semibold text-white">${escapeHtml(member.name)}</span>
                           <button
                             onclick="cycleMemberStatus('${trip.id}', '${member.id}')"
-                            class="px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer ${
+                            class="px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${
                               member.status === 'Confirmado'
                                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
                                 : member.status === 'Juntando Grana'
                                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                                  : 'bg-slate-800 text-gray-300 border border-slate-700'
+                                  : 'bg-slate-800 text-gray-300'
                             }"
                           >
                             ${escapeHtml(member.status)}
@@ -1804,15 +1923,39 @@ service cloud.firestore {
                         </div>
                       `).join('')}
                     </div>
+
                     <form onsubmit="handleAddMember(event, '${trip.id}')" class="flex gap-2">
                       <input
                         type="text"
                         id="new-member-${trip.id}"
                         placeholder="Nome do amigo(a)..."
-                        class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-purple-400 focus:outline-none"
+                        class="flex-1 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-purple-400 focus:outline-none"
                       />
-                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-purple-400 hover:bg-purple-300 cursor-pointer">Adicionar</button>
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-purple-400 hover:bg-purple-300 cursor-pointer">
+                        + Amigo
+                      </button>
                     </form>
+
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800">
+                      <div class="flex flex-wrap items-center gap-2">
+                        ${!trip.isHero ? `
+                          <button onclick="setTripAsHero('${trip.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 cursor-pointer">
+                            Fixar no Topo
+                          </button>
+                        ` : '<span class="text-[11px] font-mono text-cyan-400">★ Fixada no topo</span>'}
+
+                        <button onclick="openTicketModal('${trip.id}')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-300 bg-slate-800 hover:bg-slate-700 cursor-pointer">
+                          Editar Datas / Ingressos
+                        </button>
+                      </div>
+
+                      <button
+                        onclick="deleteTrip('${trip.id}')"
+                        class="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 cursor-pointer"
+                      >
+                        ${deleteConfirmTripId === trip.id ? 'Confirmar Exclusão?' : 'Excluir Viagem'}
+                      </button>
+                    </div>
                   </div>
                 ` : ''}
               </div>
