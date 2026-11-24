@@ -1,0 +1,2411 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RESENHATRON 2000 — Rastreador de Viagens & Metas da Galera</title>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fontes: Plus Jakarta Sans, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #080B12;
+      color: #F3F4F6;
+      font-family: 'Inter', sans-serif;
+    }
+
+    h1, h2, h3, h4, .font-display {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    .glass-surface {
+      background: rgba(15, 21, 35, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(51, 65, 85, 0.7);
+    }
+
+    @keyframes floatUpFade {
+      0% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-42px) scale(1.2);
+      }
+    }
+
+    .animate-float-up {
+      animation: floatUpFade 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-cyan-500/30 selection:text-cyan-200">
+
+  <!-- Toast Flutuante para Avisos Rápidos -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- HEADER COMPACTO                                                       -->
+  <!-- ===================================================================== -->
+  <header class="sticky top-0 z-30 border-b border-slate-800/80 bg-[#080B12]/90 backdrop-blur-md">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
+      <!-- Marca -->
+      <div class="flex items-center gap-2.5 min-w-0">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-400 to-emerald-400 flex items-center justify-center shadow-md shadow-cyan-500/20 shrink-0">
+          <i data-lucide="flame" class="w-5 h-5 text-slate-950 stroke-[2.5]"></i>
+        </div>
+        <div class="truncate">
+          <h1 class="text-sm sm:text-base font-extrabold tracking-tight text-white truncate">RESENHATRON 2000</h1>
+          <p class="text-[11px] text-gray-400 truncate hidden sm:block">Metas, datas & contagem regressiva da galera</p>
+        </div>
+      </div>
+
+      <!-- Ações Compactas -->
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          onclick="openFirebaseModal()"
+          id="btn-sync-status"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-200 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 transition-all cursor-pointer"
+          title="Configurar sincronização em tempo real com a galera"
+        >
+          <i data-lucide="radio" id="sync-status-icon" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span id="sync-status-label" class="hidden sm:inline">Sincronizar</span>
+        </button>
+
+        <button
+          onclick="openPhotosModal()"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer"
+          title="Gerenciar fotos da galera no fundo"
+        >
+          <i data-lucide="camera" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Fotos <span class="hidden sm:inline">da Galera</span></span>
+        </button>
+
+        <button
+          onclick="openShareModal()"
+          class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-gray-300 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 transition-all cursor-pointer"
+          title="Compartilhar link ou backup"
+        >
+          <i data-lucide="share-2" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span class="hidden sm:inline">Compartilhar</span>
+        </button>
+
+        <button
+          onclick="openNewTripModal()"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 shadow-md shadow-cyan-500/15 transition-all cursor-pointer"
+        >
+          <i data-lucide="plus" class="w-4 h-4 stroke-[2.5]"></i>
+          <span>Nova Viagem</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- CONTEÚDO PRINCIPAL                                                    -->
+  <!-- ===================================================================== -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-8">
+    <!-- 1. HERO DO PRÓXIMO EVENTO COM SLIDESHOW DA GALERA NO FUNDO -->
+    <section id="hero-section"></section>
+
+    <!-- 2. LISTA DE PRÓXIMAS VIAGENS (CARDS LIMPOS + DROPDOWN DE DETALHES) -->
+    <section class="space-y-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-base sm:text-lg font-bold text-white">Próximas Expedições</h3>
+          <p class="text-xs text-gray-400">Clique em <strong class="text-gray-200">Detalhes &amp; Cofre</strong> para abrir checklists, meta mensal e votação</p>
+        </div>
+        <span id="trips-count-label" class="text-xs font-mono text-gray-400"></span>
+      </div>
+
+      <div id="trips-list-container" class="space-y-4"></div>
+    </section>
+  </main>
+
+  <!-- FOOTER DISCRETO -->
+  <footer class="border-t border-slate-800/70 py-5 mt-auto">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
+      <span>RESENHATRON 2000 • Feito para a galera não perder o ritmo das viagens</span>
+      <span id="footer-sync-caption" class="font-mono text-gray-600">Modo local ativo • Clique em Sincronizar para tempo real</span>
+    </div>
+  </footer>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: SINCRONIZAÇÃO EM TEMPO REAL (CHAVES / FALLBACK LOCAL)         -->
+  <!-- ===================================================================== -->
+  <div id="firebase-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeFirebaseModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-xl glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+            <i data-lucide="radio" class="w-5 h-5 text-emerald-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white">Sincronização ao Vivo da Galera</h3>
+            <p class="text-xs text-gray-400">Todos veem cliques no Resenhômetro, aportes e ideias na hora</p>
+          </div>
+        </div>
+        <button onclick="closeFirebaseModal()" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div id="fb-status-banner" class="p-3 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-gray-300 flex items-center justify-between gap-2">
+        <span id="fb-status-detail">Verificando conexão...</span>
+        <span id="fb-uid-badge" class="font-mono text-[10px] text-gray-500 truncate max-w-[160px]"></span>
+      </div>
+
+      <div id="fb-rules-help" class="hidden p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200 space-y-2">
+        <p class="font-bold">⚠️ Permissão bloqueada no Firestore (Missing or insufficient permissions)</p>
+        <p class="text-[11px] text-amber-100/90">No Console do Firebase, vá em <strong>Firestore Database → Regras (Rules)</strong>, cole o código abaixo e clique em <strong>Publicar</strong>:</p>
+        <pre class="p-2.5 rounded-lg bg-[#080B12] border border-slate-800 text-[10px] font-mono text-emerald-300 overflow-x-auto">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /artifacts/{appId}/public/data/{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}</pre>
+      </div>
+
+      <form onsubmit="handleSaveFirebaseConfig(event)" class="space-y-3">
+        <div class="flex items-center justify-between">
+          <label class="block text-xs font-bold uppercase tracking-wider text-cyan-400">Configuração do Projeto (JSON)</label>
+          <button type="button" onclick="fillExampleFirebaseHint()" class="text-[11px] text-gray-400 hover:text-cyan-300 underline cursor-pointer">
+            Ver exemplo de formato
+          </button>
+        </div>
+
+        <textarea
+          id="fb-config-json"
+          rows="5"
+          placeholder='Cole aqui o objeto de configuração do projeto Firebase, ex:
+{
+  "apiKey": "...",
+  "authDomain": "...",
+  "projectId": "...",
+  "storageBucket": "...",
+  "messagingSenderId": "...",
+  "appId": "..."
+}'
+          class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 focus:border-cyan-400 focus:outline-none text-xs font-mono text-gray-200 placeholder-gray-600"
+        ></textarea>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">Código da Sala da Galera (Room ID)</label>
+          <input
+            type="text"
+            id="fb-room-id"
+            value="resenhatron-galera-principal"
+            placeholder="Ex: resenhatron-galera-principal"
+            class="w-full px-3.5 py-2 rounded-xl bg-[#080B12] border border-slate-700 focus:border-cyan-400 focus:outline-none text-xs font-mono text-white"
+          />
+          <p class="text-[11px] text-gray-500 mt-1">Todos os amigos devem usar o mesmo Código da Sala para compartilharem os mesmos dados ao vivo.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800">
+          <button
+            type="button"
+            onclick="useLocalFallbackMode()"
+            class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-300 bg-slate-800 hover:bg-slate-700 cursor-pointer"
+          >
+            Usar Modo Local (Sem Nuvem)
+          </button>
+
+          <button
+            type="submit"
+            class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-emerald-400 to-cyan-400 hover:from-emerald-300 hover:to-cyan-300 cursor-pointer"
+          >
+            Conectar &amp; Sincronizar Ao Vivo
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: GERENCIAR FOTOS DA GALERA (DRIVE + UPLOAD + /FOTOS VERCEL)     -->
+  <!-- ===================================================================== -->
+  <div id="photos-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closePhotosModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-2xl glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 max-h-[92vh] overflow-y-auto space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+            <i data-lucide="camera" class="w-5 h-5 text-amber-400"></i>
+          </div>
+          <div>
+            <h3 class="text-base sm:text-lg font-bold text-white">Fotos da Galera no Fundo</h3>
+            <p class="text-xs text-gray-400">Suporta 200+ fotos otimizadas localmente, links do Google Drive ou pasta /fotos</p>
+          </div>
+        </div>
+        <button onclick="closePhotosModal()" class="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Adicionar via Link (Google Drive ou URL direta) -->
+      <form onsubmit="handleAddPhotoUrl(event)" class="space-y-3">
+        <label class="block text-xs font-bold uppercase tracking-wider text-amber-400">Colar Link de Foto (Google Drive ou URL)</label>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input
+            type="url"
+            id="photo-url-input"
+            required
+            placeholder="https://drive.google.com/file/d/... ou link direto da imagem"
+            class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-gray-600"
+          />
+          <input
+            type="text"
+            id="photo-caption-input"
+            placeholder="Legenda (ex: Churras 2025)"
+            class="sm:w-44 px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 focus:border-amber-400 focus:outline-none text-xs text-white placeholder-gray-600"
+          />
+          <button
+            type="submit"
+            class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 shrink-0 cursor-pointer"
+          >
+            Adicionar
+          </button>
+        </div>
+        <p class="text-[11px] text-gray-500">
+          Dica Google Drive: deixe o arquivo como <strong class="text-gray-300">"Qualquer pessoa com o link"</strong> e cole o link aqui; o app converte automaticamente.
+        </p>
+      </form>
+
+      <!-- Upload Local Múltiplo -->
+      <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/80">
+        <div>
+          <span class="block text-xs font-semibold text-gray-300">Ou envie direto do celular / computador (200+ fotos)</span>
+          <span class="text-[11px] text-gray-500">Compressão automática (1280px, ~120KB) + banco IndexedDB local</span>
+        </div>
+        <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 cursor-pointer transition-colors">
+          <i data-lucide="upload" class="w-4 h-4 text-cyan-400"></i>
+          <span>Selecionar Fotos</span>
+          <input type="file" accept="image/*" multiple onchange="handleLocalPhotoUpload(event)" class="hidden" />
+        </label>
+      </div>
+
+      <!-- Barra de Progresso de Upload para Lotes Grandes -->
+      <div id="photo-upload-progress" class="hidden space-y-1.5 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+        <div class="flex items-center justify-between text-xs font-mono">
+          <span id="photo-progress-text" class="text-cyan-300">Otimizando fotos...</span>
+          <span id="photo-progress-pct" class="text-amber-400 font-bold">0%</span>
+        </div>
+        <div class="h-2 w-full rounded-full bg-slate-950 overflow-hidden">
+          <div id="photo-progress-bar" class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-amber-400 transition-all duration-150" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Pasta /fotos na Vercel (Opcional) -->
+      <div class="rounded-xl bg-slate-900/70 border border-slate-800 p-3 text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-bold text-gray-200 flex items-center gap-1.5">
+            <i data-lucide="folder-git-2" class="w-4 h-4 text-emerald-400"></i>
+            <span>Pasta <code class="text-emerald-300">/fotos</code> na Vercel (Para todos verem as fotos sem reenviar)</span>
+          </span>
+        </div>
+        <p class="text-[11px] text-gray-400 leading-relaxed">
+          Se publicar na Vercel com uma pasta <code class="text-gray-300">fotos/</code>, liste os nomes (um por linha, ex: <code class="text-gray-300">foto1.jpg</code>) para carregar direto de <code class="text-gray-300">/fotos/...</code>:
+        </p>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <textarea
+            id="vercel-folder-names"
+            rows="2"
+            placeholder="Ex: praia-2025.jpg&#10;role-sabado.jpg"
+            class="flex-1 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-gray-200 focus:border-emerald-400 focus:outline-none"
+          ></textarea>
+          <button
+            type="button"
+            onclick="applyVercelFolderPhotos()"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 shrink-0 cursor-pointer"
+          >
+            Carregar /fotos
+          </button>
+        </div>
+      </div>
+
+      <!-- Galeria Atual -->
+      <div class="space-y-2 pt-2 border-t border-slate-800/80">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-bold uppercase tracking-wider text-gray-400">
+            Fotos Ativas no Carrossel (<span id="photos-modal-count">0</span>)
+          </span>
+          <button
+            type="button"
+            onclick="restoreDefaultPhotos()"
+            class="text-[11px] text-gray-400 hover:text-amber-300 underline cursor-pointer"
+          >
+            Restaurar fotos padrão
+          </button>
+        </div>
+
+        <div id="photos-grid-container" class="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-72 overflow-y-auto pr-1"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: DEFINIR DATAS DO EVENTO & ABERTURA DE INGRESSOS                -->
+  <!-- ===================================================================== -->
+  <div id="ticket-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeTicketModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-md glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="ticket" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="text-base font-bold text-white">Datas do Evento &amp; Ingressos</h3>
+        </div>
+        <button onclick="closeTicketModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleSaveTicketModal(event)" class="space-y-4">
+        <input type="hidden" id="ticket-trip-id" />
+
+        <!-- Data Principal do Evento -->
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+          <label class="flex items-center gap-2 text-xs font-semibold text-gray-200 cursor-pointer">
+            <input type="checkbox" id="ticket-event-tba" class="w-4 h-4 rounded accent-cyan-400" />
+            <span>Data do evento ainda não divulgada</span>
+          </label>
+
+          <div>
+            <label class="block text-[11px] text-gray-400 mb-1">Data oficial do evento (quando sair)</label>
+            <input
+              type="date"
+              id="ticket-event-date"
+              class="w-full px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- Abertura de Ingressos -->
+        <div class="p-3.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+          <label class="flex items-center gap-2 text-xs font-semibold text-gray-200 cursor-pointer">
+            <input type="checkbox" id="ticket-sale-tba" class="w-4 h-4 rounded accent-amber-400" />
+            <span>Abertura de ingressos ainda não divulgada</span>
+          </label>
+
+          <div>
+            <label class="block text-[11px] text-gray-400 mb-1">Data da abertura de vendas (quando sair)</label>
+            <input
+              type="date"
+              id="ticket-sale-date"
+              class="w-full px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-white focus:border-amber-400 focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label class="block text-[11px] text-gray-400 mb-1">Observação do ingresso</label>
+            <input
+              type="text"
+              id="ticket-sale-note"
+              placeholder="Ex: Pré-venda no site oficial"
+              class="w-full px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-amber-400 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-1">
+          <button type="button" onclick="closeTicketModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer">
+            Salvar Datas
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: NOVA VIAGEM                                                    -->
+  <!-- ===================================================================== -->
+  <div id="new-trip-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeNewTripModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-lg glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base sm:text-lg font-bold text-white">Nova Viagem ou Evento da Galera</h3>
+        <button onclick="closeNewTripModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form onsubmit="handleCreateTrip(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 mb-1">Nome da Viagem / Evento</label>
+          <input
+            type="text"
+            id="nt-title"
+            required
+            placeholder="Ex: Carnaval em Floripa ou Show em SP"
+            class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"
+          />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Destino</label>
+            <input
+              type="text"
+              id="nt-destination"
+              required
+              placeholder="Cidade / País"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Categoria</label>
+            <select
+              id="nt-category"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"
+            >
+              <option value="Viagem Internacional">Viagem Internacional</option>
+              <option value="Esporte & Evento">Esporte &amp; Evento</option>
+              <option value="Praia & Resenha">Praia &amp; Resenha</option>
+              <option value="Trilha & Natureza">Trilha &amp; Natureza</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Data Prevista</label>
+            <input
+              type="date"
+              id="nt-date"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-300 mb-1">Meta por Pessoa (R$)</label>
+            <input
+              type="number"
+              id="nt-goal"
+              value="2500"
+              min="0"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 text-xs text-gray-300">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="nt-date-tba" class="w-4 h-4 rounded accent-amber-400" />
+            <span>Data ainda não definida</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="nt-is-hero" class="w-4 h-4 rounded accent-cyan-400" />
+            <span>Fixar como destaque no topo</span>
+          </label>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+          <button type="button" onclick="closeNewTripModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-gray-400 hover:text-white cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-gradient-to-r from-cyan-400 to-emerald-400 cursor-pointer">
+            Criar Viagem
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: COMPARTILHAR LINK / BACKUP                                     -->
+  <!-- ===================================================================== -->
+  <div id="share-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+    <div onclick="closeShareModal()" class="fixed inset-0 bg-black/80 backdrop-blur-sm"></div>
+
+    <div class="relative w-full max-w-lg glass-surface rounded-2xl p-5 sm:p-6 shadow-2xl z-10 space-y-5">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <h3 class="text-base sm:text-lg font-bold text-white">Compartilhar &amp; Sincronizar</h3>
+        <button onclick="closeShareModal()" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-slate-800 cursor-pointer">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2">
+        <label class="block text-xs font-semibold text-gray-300">Link com o estado atual do grupo</label>
+        <div class="flex gap-2">
+          <input
+            type="text"
+            id="share-link-input"
+            readonly
+            class="flex-1 px-3 py-2 rounded-xl bg-[#080B12] border border-slate-700 text-xs font-mono text-gray-300 focus:outline-none"
+          />
+          <button
+            onclick="copyShareLink()"
+            class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer shrink-0"
+          >
+            Copiar
+          </button>
+        </div>
+        <button
+          onclick="shareToWhatsApp()"
+          class="w-full py-2.5 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition-colors cursor-pointer"
+        >
+          Enviar Direto no WhatsApp da Galera
+        </button>
+      </div>
+
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-800">
+        <div class="flex items-center gap-2">
+          <button onclick="exportBackupJson()" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-300 bg-slate-800 hover:bg-slate-700 cursor-pointer">
+            Baixar JSON
+          </button>
+          <label class="px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-300 bg-slate-800 hover:bg-slate-700 cursor-pointer">
+            Restaurar JSON
+            <input type="file" accept=".json" onchange="importBackupJson(event)" class="hidden" />
+          </label>
+        </div>
+
+        <button
+          id="btn-reset-default"
+          onclick="handleResetDefault()"
+          class="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 cursor-pointer"
+        >
+          Restaurar Padrão Zerado
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT PRINCIPAL + MÓDULO FIREBASE EM TEMPO REAL                  -->
+  <!-- ===================================================================== -->
+  <script type="module">
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    const FB_CONFIG_STORAGE_KEY = 'resenhatron_2000_fb_config_v1';
+    const FB_ROOM_STORAGE_KEY = 'resenhatron_2000_fb_room_v1';
+
+    // =========================================================================
+    // COLE SUAS CHAVES DO FIREBASE AQUI PARA QUE TODOS OS AMIGOS CONECTEM SOZINHOS
+    // =========================================================================
+    const HARDCODED_FIREBASE_CONFIG = {
+      apiKey: "",
+      authDomain: "",
+      projectId: "",
+      storageBucket: "",
+      messagingSenderId: "",
+      appId: ""
+    };
+    const HARDCODED_ROOM_ID = "resenhatron-galera-principal";
+
+    let db = null;
+    let auth = null;
+    let currentUser = null;
+    let unsubscribeRoom = null;
+    let isApplyingRemoteSnapshot = false;
+    let remoteSyncTimer = null;
+
+    function resolveFirebaseConfig() {
+      if (HARDCODED_FIREBASE_CONFIG && HARDCODED_FIREBASE_CONFIG.apiKey && HARDCODED_FIREBASE_CONFIG.projectId) {
+        return HARDCODED_FIREBASE_CONFIG;
+      }
+
+      if (typeof __firebase_config !== 'undefined' && __firebase_config) {
+        try {
+          const envCfg = typeof __firebase_config === 'string' ? JSON.parse(__firebase_config) : __firebase_config;
+          if (envCfg && envCfg.apiKey && envCfg.projectId) return envCfg;
+        } catch (err) {
+          console.warn('Config de ambiente inválida:', err);
+        }
+      }
+
+      try {
+        const saved = localStorage.getItem(FB_CONFIG_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && parsed.apiKey && parsed.projectId) return parsed;
+        }
+      } catch (err) {
+        console.warn('Falha ao ler config salva:', err);
+      }
+
+      return null;
+    }
+
+    function resolveRoomId() {
+      if (HARDCODED_FIREBASE_CONFIG && HARDCODED_FIREBASE_CONFIG.apiKey && HARDCODED_ROOM_ID) {
+        return HARDCODED_ROOM_ID.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      }
+      try {
+        const savedRoom = localStorage.getItem(FB_ROOM_STORAGE_KEY);
+        if (savedRoom && savedRoom.trim()) return savedRoom.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+      } catch (e) {}
+      return 'resenhatron-galera-principal';
+    }
+
+    function updateSyncUiStatus(mode, uid = '') {
+      const labelEl = document.getElementById('sync-status-label');
+      const iconEl = document.getElementById('sync-status-icon');
+      const btnEl = document.getElementById('btn-sync-status');
+      const footerEl = document.getElementById('footer-sync-caption');
+      const bannerEl = document.getElementById('fb-status-detail');
+      const uidBadge = document.getElementById('fb-uid-badge');
+      const rulesHelp = document.getElementById('fb-rules-help');
+
+      if (mode === 'live') {
+        if (rulesHelp) rulesHelp.classList.add('hidden');
+        if (labelEl) labelEl.textContent = 'Ao Vivo';
+        if (iconEl) iconEl.setAttribute('class', 'w-3.5 h-3.5 text-emerald-400 animate-pulse');
+        if (btnEl) btnEl.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-200 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 transition-all cursor-pointer';
+        if (footerEl) footerEl.textContent = `Sincronização em tempo real ativa • Sala: ${resolveRoomId()}`;
+        if (bannerEl) bannerEl.textContent = `Conectado em tempo real na sala "${resolveRoomId()}". Mudanças aparecem para todos!`;
+        if (uidBadge) uidBadge.textContent = uid ? `ID: ${uid}` : '';
+      } else if (mode === 'permission-denied') {
+        if (rulesHelp) rulesHelp.classList.remove('hidden');
+        if (labelEl) labelEl.textContent = 'Permissão';
+        if (iconEl) iconEl.setAttribute('class', 'w-3.5 h-3.5 text-rose-400');
+        if (btnEl) btnEl.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-rose-200 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 transition-all cursor-pointer';
+        if (footerEl) footerEl.textContent = 'Regras do Firestore bloqueando escrita • Clique em Permissão para ajustar';
+        if (bannerEl) bannerEl.textContent = 'Conectado ao Firebase, mas o Firestore recusou leitura/escrita. Ajuste as Regras abaixo.';
+        if (uidBadge) uidBadge.textContent = uid ? `ID: ${uid}` : 'Permissão negada';
+      } else {
+        if (rulesHelp) rulesHelp.classList.add('hidden');
+        if (labelEl) labelEl.textContent = 'Sincronizar';
+        if (iconEl) iconEl.setAttribute('class', 'w-3.5 h-3.5 text-amber-400');
+        if (btnEl) btnEl.className = 'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-amber-200 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all cursor-pointer';
+        if (footerEl) footerEl.textContent = 'Modo local ativo • Clique em Sincronizar para conectar ao vivo';
+        if (bannerEl) bannerEl.textContent = 'Modo local ativo (salvo no navegador). Cole as chaves do projeto abaixo para sincronizar ao vivo com a galera.';
+        if (uidBadge) uidBadge.textContent = 'Offline / Local';
+      }
+    }
+
+    async function initRealtimeSync() {
+      if (unsubscribeRoom) {
+        try { unsubscribeRoom(); } catch (e) {}
+        unsubscribeRoom = null;
+      }
+
+      const cfg = resolveFirebaseConfig();
+      if (!cfg) {
+        updateSyncUiStatus('local');
+        return;
+      }
+
+      try {
+        const appId = typeof __app_id !== 'undefined' && __app_id ? __app_id : 'resenhatron-2000';
+        const roomId = resolveRoomId();
+        const appInstance = getApps().length > 0 ? getApps()[0] : initializeApp(cfg);
+        auth = getAuth(appInstance);
+        db = getFirestore(appInstance);
+
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          const cred = await signInWithCustomToken(auth, __initial_auth_token);
+          currentUser = cred.user;
+        } else {
+          const cred = await signInAnonymously(auth);
+          currentUser = cred.user;
+        }
+
+        if (!currentUser) {
+          updateSyncUiStatus('local');
+          return;
+        }
+
+        const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'resenhatron_rooms', roomId);
+
+        const existingSnap = await getDoc(roomDocRef);
+        if (!existingSnap.exists() && window.state && Array.isArray(window.state.trips)) {
+          await setDoc(roomDocRef, {
+            trips: window.state.trips,
+            sharedPhotos: (window.state.photos || []).filter(p => typeof p.url === 'string' && !p.url.startsWith('data:')),
+            updatedAt: new Date().toISOString(),
+            updatedBy: currentUser.uid
+          });
+        }
+
+        updateSyncUiStatus('live', currentUser.uid);
+
+        unsubscribeRoom = onSnapshot(
+          roomDocRef,
+          (snap) => {
+            if (!snap.exists()) return;
+            const data = snap.data();
+            if (!data || !Array.isArray(data.trips)) return;
+
+            isApplyingRemoteSnapshot = true;
+            window.state.trips = data.trips;
+
+            if (Array.isArray(data.sharedPhotos) && data.sharedPhotos.length > 0) {
+              const localDataPhotos = (window.state.photos || []).filter(p => typeof p.url === 'string' && p.url.startsWith('data:'));
+              const merged = [...localDataPhotos, ...data.sharedPhotos];
+              const seen = new Set();
+              window.state.photos = merged.filter(item => {
+                if (seen.has(item.url)) return false;
+                seen.add(item.url);
+                return true;
+              });
+            }
+
+            if (typeof window.saveStateLocalOnly === 'function') {
+              window.saveStateLocalOnly();
+            }
+            if (typeof window.renderAll === 'function') {
+              window.renderAll();
+            }
+            isApplyingRemoteSnapshot = false;
+          },
+          (err) => {
+            isApplyingRemoteSnapshot = false;
+            if (err && err.code === 'permission-denied') {
+              db = null;
+              updateSyncUiStatus('permission-denied', currentUser?.uid || '');
+              if (typeof window.showToast === 'function') {
+                window.showToast('Permissão negada no Firestore. Clique em "Permissão" no topo para ver a regra.', 'danger');
+              }
+              return;
+            }
+            console.warn('Erro no listener em tempo real:', err);
+            if (typeof window.showToast === 'function') {
+              window.showToast('Falha na sincronização ao vivo; mantendo dados locais.', 'danger');
+            }
+          }
+        );
+      } catch (err) {
+        if (err && err.code === 'permission-denied') {
+          db = null;
+          updateSyncUiStatus('permission-denied', currentUser?.uid || '');
+          if (typeof window.showToast === 'function') {
+            window.showToast('Permissão negada no Firestore. Clique em "Permissão" no topo para corrigir.', 'danger');
+          }
+          return;
+        }
+        console.warn('Erro ao inicializar sincronização:', err);
+        updateSyncUiStatus('local');
+        if (typeof window.showToast === 'function') {
+          window.showToast('Não foi possível conectar agora; usando modo local.', 'danger');
+        }
+      }
+    }
+
+    async function pushStateToRealtime() {
+      if (isApplyingRemoteSnapshot) return;
+      if (!db || !currentUser) return;
+
+      try {
+        const appId = typeof __app_id !== 'undefined' && __app_id ? __app_id : 'resenhatron-2000';
+        const roomId = resolveRoomId();
+        const roomDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'resenhatron_rooms', roomId);
+        const sharedPhotos = (window.state.photos || []).filter(p => typeof p.url === 'string' && !p.url.startsWith('data:'));
+
+        await setDoc(roomDocRef, {
+          trips: window.state.trips,
+          sharedPhotos,
+          updatedAt: new Date().toISOString(),
+          updatedBy: currentUser.uid
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Erro ao enviar atualização para nuvem:', err);
+      }
+    }
+
+    window.scheduleRealtimePush = function() {
+      if (isApplyingRemoteSnapshot) return;
+      if (remoteSyncTimer) clearTimeout(remoteSyncTimer);
+      remoteSyncTimer = setTimeout(() => {
+        pushStateToRealtime();
+      }, 220);
+    };
+
+    window.openFirebaseModal = function() {
+      try {
+        const saved = localStorage.getItem(FB_CONFIG_STORAGE_KEY);
+        if (saved) document.getElementById('fb-config-json').value = JSON.stringify(JSON.parse(saved), null, 2);
+        document.getElementById('fb-room-id').value = resolveRoomId();
+      } catch (e) {}
+      updateSyncUiStatus(db && currentUser ? 'live' : 'local', currentUser?.uid || '');
+      document.getElementById('firebase-modal').classList.remove('hidden');
+      if (typeof window.refreshIcons === 'function') window.refreshIcons();
+    };
+
+    window.closeFirebaseModal = function() {
+      document.getElementById('firebase-modal').classList.add('hidden');
+    };
+
+    window.fillExampleFirebaseHint = function() {
+      document.getElementById('fb-config-json').value = JSON.stringify({
+        apiKey: "AIzaSyExemploChaveDoSeuProjeto",
+        authDomain: "resenhatron-2000.firebaseapp.com",
+        projectId: "resenhatron-2000",
+        storageBucket: "resenhatron-2000.firebasestorage.app",
+        messagingSenderId: "1234567890",
+        appId: "1:1234567890:web:abcdef123456"
+      }, null, 2);
+    };
+
+    window.handleSaveFirebaseConfig = async function(e) {
+      e.preventDefault();
+      const raw = document.getElementById('fb-config-json').value.trim();
+      const roomInput = document.getElementById('fb-room-id').value.trim() || 'resenhatron-galera-principal';
+      const cleanRoom = roomInput.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+      try {
+        const cleanedJson = raw
+          .replace(/^[^{]*/, '')
+          .replace(/[^}]*$/, '')
+          .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+          .replace(/,\s*([}\]])/g, '$1');
+
+        const parsed = JSON.parse(cleanedJson);
+        if (!parsed.apiKey || !parsed.projectId) {
+          throw new Error('Faltam apiKey ou projectId');
+        }
+
+        localStorage.setItem(FB_CONFIG_STORAGE_KEY, JSON.stringify(parsed));
+        localStorage.setItem(FB_ROOM_STORAGE_KEY, cleanRoom);
+        window.closeFirebaseModal();
+        if (typeof window.showToast === 'function') {
+          window.showToast('Conectando à sala em tempo real...', 'info');
+        }
+        await initRealtimeSync();
+      } catch (err) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('Configuração inválida. Confira apiKey e projectId.', 'danger');
+        }
+      }
+    };
+
+    window.useLocalFallbackMode = function() {
+      localStorage.removeItem(FB_CONFIG_STORAGE_KEY);
+      if (unsubscribeRoom) {
+        try { unsubscribeRoom(); } catch (e) {}
+        unsubscribeRoom = null;
+      }
+      db = null;
+      currentUser = null;
+      updateSyncUiStatus('local');
+      window.closeFirebaseModal();
+      if (typeof window.showToast === 'function') {
+        window.showToast('Modo local ativado.', 'info');
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initRealtimeSync();
+    });
+  </script>
+
+  <script>
+    // =========================================================================
+    // 1. DADOS PADRÃO ZERADOS PARA LANÇAMENTO (VNL SEM DATA + CHILE 2028)
+    // =========================================================================
+    const STORAGE_KEY = 'squad_horizon_v2_data';
+    const IDB_NAME = 'resenhatron_2000_idb';
+    const IDB_STORE = 'group_photos';
+
+    const DEFAULT_PHOTOS = [
+      {
+        id: 'ph-1',
+        url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1600&q=80',
+        caption: 'Nossa galera reunida • Próximo destino vem aí!'
+      },
+      {
+        id: 'ph-2',
+        url: 'https://images.unsplash.com/photo-1539635278303-d4002c07eae3?auto=format&fit=crop&w=1600&q=80',
+        caption: 'Estrada, risadas e planos para os próximos anos'
+      },
+      {
+        id: 'ph-3',
+        url: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=1600&q=80',
+        caption: 'Memórias que ficam • Rumo à VNL e ao Chile'
+      },
+      {
+        id: 'ph-4',
+        url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1600&q=80',
+        caption: 'Explorando lugares novos juntos'
+      }
+    ];
+
+    const DEFAULT_TRIPS = [
+      {
+        id: 'trip-vnl-2027',
+        title: 'Liga das Nações de Vôlei Feminino (VNL)',
+        destination: 'Brasil (Sede a confirmar)',
+        category: 'Esporte & Evento',
+        isHero: true,
+        isDateTBA: true,
+        estimatedPeriod: 'Meio de 2027 (Previsão)',
+        targetDate: '2027-06-15',
+        ticketSale: {
+          isTBA: true,
+          openDate: '',
+          note: 'Aguardando abertura oficial (Data ainda não divulgada)'
+        },
+        hypeLevel: 0,
+        boosts: 0,
+        goalPerPerson: 2500,
+        savedPerPerson: 0,
+        deposits: [],
+        checkpoints: [
+          { id: 'cp-vnl-1', text: 'Ficar de olho no anúncio da cidade-sede e calendário', done: false },
+          { id: 'cp-vnl-2', text: 'Ativar alerta para a abertura da pré-venda de ingressos', done: false },
+          { id: 'cp-vnl-3', text: 'Criar caixinha mensal da galera', done: false },
+          { id: 'cp-vnl-4', text: 'Reservar hospedagem perto do ginásio', done: false }
+        ],
+        ideas: [
+          { id: 'id-vnl-1', text: 'Assistir a um jogo decisivo da Seleção Feminina na quadra', tag: 'Experiência', votes: 0, voted: false },
+          { id: 'id-vnl-2', text: 'Fazer camisa personalizada da galera para torcer', tag: 'Estilo', votes: 0, voted: false },
+          { id: 'id-vnl-3', text: 'Comemorar pós-jogo em um bar temático', tag: 'Rolê', votes: 0, voted: false }
+        ],
+        squad: [
+          { id: 'sq-vnl-1', name: 'Aedriun', status: 'Confirmado' },
+          { id: 'sq-vnl-2', name: 'Lucas', status: 'Talvez' },
+          { id: 'sq-vnl-3', name: 'Mariana', status: 'Talvez' },
+          { id: 'sq-vnl-4', name: 'Pedro', status: 'Talvez' }
+        ]
+      },
+      {
+        id: 'trip-chile-2028',
+        title: 'Expedição Chile — Neve & Cordilheira',
+        destination: 'Santiago, Valle Nevado & Cajón del Maipo',
+        category: 'Viagem Internacional',
+        isHero: false,
+        isDateTBA: false,
+        estimatedPeriod: 'Julho de 2028',
+        targetDate: '2028-07-15',
+        ticketSale: null,
+        hypeLevel: 0,
+        boosts: 0,
+        goalPerPerson: 5800,
+        savedPerPerson: 0,
+        deposits: [],
+        checkpoints: [
+          { id: 'cp-ch-1', text: 'Alinhar janela de férias de julho/2028 com o grupo', done: false },
+          { id: 'cp-ch-2', text: 'Conferir validade do RG (<10 anos) ou Passaporte', done: false },
+          { id: 'cp-ch-3', text: 'Ativar alerta de passagens promocionais para Santiago', done: false },
+          { id: 'cp-ch-4', text: 'Reservar apartamento grande para o grupo em Providencia', done: false },
+          { id: 'cp-ch-5', text: 'Fechar passeio para Valle Nevado e Cajón del Maipo', done: false }
+        ],
+        ideas: [
+          { id: 'id-ch-1', text: 'Esquiar e brincar na neve em Valle Nevado / Farellones', tag: 'Aventura', votes: 0, voted: false },
+          { id: 'id-ch-2', text: 'Conhecer o Embalse El Yeso em Cajón del Maipo', tag: 'Passeio', votes: 0, voted: false },
+          { id: 'id-ch-3', text: 'Ver o pôr do sol do alto do Sky Costanera', tag: 'Visual', votes: 0, voted: false }
+        ],
+        squad: [
+          { id: 'sq-ch-1', name: 'Aedriun', status: 'Confirmado' },
+          { id: 'sq-ch-2', name: 'Lucas', status: 'Talvez' },
+          { id: 'sq-ch-3', name: 'Mariana', status: 'Talvez' },
+          { id: 'sq-ch-4', name: 'Pedro', status: 'Talvez' },
+          { id: 'sq-ch-5', name: 'Sofia', status: 'Talvez' }
+        ]
+      }
+    ];
+
+    // =========================================================================
+    // 2. INDEXEDDB PARA 200+ FOTOS + ESTADO GLOBAL
+    // =========================================================================
+    window.state = {
+      trips: [],
+      photos: [],
+      expandedTripIds: {},
+      activeTripTabs: {},
+      currentSlideIndex: 0
+    };
+    const state = window.state;
+
+    let slideIntervalId = null;
+    let resetConfirmPending = false;
+    let deleteConfirmTripId = null;
+
+    function openPhotosDB() {
+      return new Promise((resolve, reject) => {
+        if (!('indexedDB' in window)) {
+          reject(new Error('IndexedDB indisponível'));
+          return;
+        }
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = (e) => {
+          const dbInstance = e.target.result;
+          if (!dbInstance.objectStoreNames.contains(IDB_STORE)) {
+            dbInstance.createObjectStore(IDB_STORE, { keyPath: 'id' });
+          }
+        };
+        req.onsuccess = (e) => resolve(e.target.result);
+        req.onerror = (e) => reject(e.target.error);
+      });
+    }
+
+    async function savePhotoToIDB(photoObj) {
+      try {
+        const dbInstance = await openPhotosDB();
+        return new Promise((resolve, reject) => {
+          const tx = dbInstance.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).put(photoObj);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = (e) => reject(e.target.error);
+        });
+      } catch (err) {
+        console.warn('Falha ao salvar foto no IndexedDB:', err);
+        return false;
+      }
+    }
+
+    async function getAllPhotosFromIDB() {
+      try {
+        const dbInstance = await openPhotosDB();
+        return new Promise((resolve, reject) => {
+          const tx = dbInstance.transaction(IDB_STORE, 'readonly');
+          const req = tx.objectStore(IDB_STORE).getAll();
+          req.onsuccess = (e) => resolve(e.target.result || []);
+          req.onerror = (e) => reject(e.target.error);
+        });
+      } catch (err) {
+        return [];
+      }
+    }
+
+    async function deletePhotoFromIDB(photoId) {
+      try {
+        const dbInstance = await openPhotosDB();
+        return new Promise((resolve) => {
+          const tx = dbInstance.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).delete(photoId);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (err) {
+        return false;
+      }
+    }
+
+    async function clearPhotosInIDB() {
+      try {
+        const dbInstance = await openPhotosDB();
+        return new Promise((resolve) => {
+          const tx = dbInstance.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).clear();
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => resolve(false);
+        });
+      } catch (err) {
+        return false;
+      }
+    }
+
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    function normalizePhotoUrl(rawUrl) {
+      const url = (rawUrl || '').trim();
+      if (!url) return '';
+      const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileMatch && fileMatch[1]) {
+        return `https://drive.google.com/thumbnail?id=${fileMatch[1]}&sz=w1600`;
+      }
+      const idParamMatch = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+      if (idParamMatch && idParamMatch[1]) {
+        return `https://drive.google.com/thumbnail?id=${idParamMatch[1]}&sz=w1600`;
+      }
+      return url;
+    }
+
+    function encodeStateToHash() {
+      try {
+        const externalPhotos = state.photos.filter(p => typeof p.url === 'string' && !p.url.startsWith('data:'));
+        const payload = { trips: state.trips, photos: externalPhotos };
+        return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function decodeStateFromHash(hashStr) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(escape(atob(hashStr))));
+        if (parsed && Array.isArray(parsed.trips)) return parsed;
+        if (Array.isArray(parsed)) return { trips: parsed, photos: [] };
+        return null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function saveStateLocalOnly() {
+      try {
+        const externalPhotos = state.photos.filter(p => typeof p.url === 'string' && !p.url.startsWith('data:'));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          trips: state.trips,
+          photos: externalPhotos
+        }));
+      } catch (e) {
+        console.warn('Falha ao salvar estado local:', e);
+      }
+    }
+
+    function saveState() {
+      saveStateLocalOnly();
+      if (typeof window.scheduleRealtimePush === 'function') {
+        window.scheduleRealtimePush();
+      }
+    }
+    window.saveStateLocalOnly = saveStateLocalOnly;
+
+    async function loadState() {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#squad=')) {
+        const decoded = decodeStateFromHash(hash.replace('#squad=', '').trim());
+        if (decoded && decoded.trips.length > 0) {
+          state.trips = decoded.trips;
+          const idbPhotos = await getAllPhotosFromIDB();
+          const extPhotos = (decoded.photos && decoded.photos.length > 0) ? decoded.photos : DEFAULT_PHOTOS;
+          state.photos = shuffleArray([...idbPhotos, ...extPhotos]);
+          saveStateLocalOnly();
+          history.replaceState(null, '', window.location.pathname + window.location.search);
+          setTimeout(() => showToast('Planos sincronizados pelo link do grupo!', 'success'), 350);
+          return;
+        }
+      }
+
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.trips) && parsed.trips.length > 0) {
+            state.trips = parsed.trips;
+          } else {
+            state.trips = JSON.parse(JSON.stringify(DEFAULT_TRIPS));
+          }
+        } else {
+          state.trips = JSON.parse(JSON.stringify(DEFAULT_TRIPS));
+        }
+      } catch (e) {
+        state.trips = JSON.parse(JSON.stringify(DEFAULT_TRIPS));
+      }
+
+      const idbPhotos = await getAllPhotosFromIDB();
+      if (idbPhotos.length > 0) {
+        state.photos = shuffleArray(idbPhotos);
+      } else {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          const parsed = saved ? JSON.parse(saved) : null;
+          if (parsed && Array.isArray(parsed.photos) && parsed.photos.length > 0) {
+            state.photos = shuffleArray(parsed.photos);
+          } else {
+            state.photos = shuffleArray(DEFAULT_PHOTOS);
+          }
+        } catch (e) {
+          state.photos = shuffleArray(DEFAULT_PHOTOS);
+        }
+      }
+
+      saveStateLocalOnly();
+    }
+
+    // =========================================================================
+    // 3. UTILITÁRIOS DE DATA, MOEDA E CÁLCULOS
+    // =========================================================================
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatCurrency(val) {
+      return (Number(val) || 0).toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        maximumFractionDigits: 0
+      });
+    }
+
+    function formatDateBR(dateStr) {
+      if (!dateStr) return 'Data a definir';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+
+    function getCountdownParts(targetDateStr) {
+      if (!targetDateStr) return null;
+      const target = new Date(`${targetDateStr}T09:00:00`);
+      const now = new Date();
+      const diff = target - now;
+      if (isNaN(target.getTime())) return null;
+      if (diff <= 0) {
+        return { days: 0, hours: 0, minutes: 0, seconds: 0, passed: true };
+      }
+      return {
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((diff / 1000 / 60) % 60),
+        seconds: Math.floor((diff / 1000) % 60),
+        passed: false
+      };
+    }
+
+    function getMonthsUntil(targetDateStr) {
+      if (!targetDateStr) return 12;
+      const target = new Date(`${targetDateStr}T09:00:00`);
+      const now = new Date();
+      const diffMs = target - now;
+      if (isNaN(target.getTime()) || diffMs <= 0) return 1;
+      return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24 * 30.44)));
+    }
+
+    function getHeroTrip() {
+      if (!state.trips || state.trips.length === 0) return null;
+      return state.trips.find(t => t.isHero) || state.trips[0];
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const colors = {
+        success: 'border-emerald-500/40 bg-slate-900/95 text-emerald-200',
+        danger: 'border-rose-500/40 bg-slate-900/95 text-rose-200',
+        info: 'border-cyan-500/40 bg-slate-900/95 text-cyan-200'
+      };
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto px-4 py-2.5 rounded-xl border text-xs font-semibold shadow-xl backdrop-blur-md transition-all duration-300 ${colors[type] || colors.info}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+    window.showToast = showToast;
+
+    // =========================================================================
+    // 4. HERO SECTION & SLIDESHOW DE FOTOS DA GALERA
+    // =========================================================================
+    function renderHero() {
+      const container = document.getElementById('hero-section');
+      if (!container) return;
+
+      const hero = getHeroTrip();
+      if (!hero) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const photos = state.photos && state.photos.length > 0 ? state.photos : DEFAULT_PHOTOS;
+      const activeIdx = state.currentSlideIndex % photos.length;
+      const activePhoto = photos[activeIdx];
+
+      const cd = !hero.isDateTBA ? getCountdownParts(hero.targetDate) : null;
+      const ticket = hero.ticketSale;
+      const ticketCd = ticket && !ticket.isTBA && ticket.openDate ? getCountdownParts(ticket.openDate) : null;
+
+      const vaultPct = hero.goalPerPerson > 0
+        ? Math.min(100, Math.round(((hero.savedPerPerson || 0) / hero.goalPerPerson) * 100))
+        : 0;
+
+      container.innerHTML = `
+        <div class="relative rounded-3xl overflow-hidden border border-slate-800/90 shadow-2xl min-h-[380px] sm:min-h-[420px] flex flex-col justify-between">
+          <!-- Camada de Fotos no Fundo -->
+          <div id="hero-slides-layer" class="absolute inset-0 z-0 bg-slate-950">
+            <img
+              id="hero-active-img"
+              src="${escapeHtml(activePhoto.url)}"
+              alt="${escapeHtml(activePhoto.caption || 'Galera')}"
+              onerror="this.src='https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=1600&q=80'"
+              class="w-full h-full object-cover object-center transition-opacity duration-1000 opacity-55"
+            />
+            <div class="absolute inset-0 bg-gradient-to-t from-[#080B12] via-[#080B12]/75 to-[#080B12]/40"></div>
+            <div class="absolute inset-0 bg-gradient-to-r from-[#080B12]/90 via-[#080B12]/55 to-transparent"></div>
+          </div>
+
+          <!-- Topo do Hero: Badge de Destaque + Legenda da Foto -->
+          <div class="relative z-10 p-5 sm:p-8 flex flex-wrap items-center justify-between gap-3">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-500/15 border border-cyan-400/30 backdrop-blur-md">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+              <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-200">Próxima Grande Resenha</span>
+            </div>
+
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/50 border border-white/10 backdrop-blur-md text-[11px] text-gray-300">
+              <i data-lucide="image" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span id="hero-photo-caption" class="max-w-[200px] sm:max-w-xs truncate">${escapeHtml(activePhoto.caption || 'Galera reunida')}</span>
+              <span id="hero-photo-counter" class="font-mono text-[10px] text-gray-400">(${activeIdx + 1}/${photos.length})</span>
+            </div>
+          </div>
+
+          <!-- Conteúdo Principal do Hero -->
+          <div class="relative z-10 p-5 sm:p-8 pt-2 space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-end">
+              <!-- Esquerda: Título, Local e Contagem Regressiva -->
+              <div class="lg:col-span-7 space-y-4">
+                <div>
+                  <div class="flex items-center gap-2 text-xs text-amber-300 font-semibold mb-1">
+                    <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                    <span>${escapeHtml(hero.destination)}</span>
+                  </div>
+                  <h2 class="text-2xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
+                    ${escapeHtml(hero.title)}
+                  </h2>
+                </div>
+
+                <!-- Bloco de Data / Contagem Regressiva -->
+                ${hero.isDateTBA ? `
+                  <div class="inline-flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 rounded-2xl bg-slate-950/80 border border-amber-500/30 backdrop-blur-md">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center shrink-0">
+                        <i data-lucide="calendar-clock" class="w-5 h-5 text-amber-400"></i>
+                      </div>
+                      <div>
+                        <span class="block text-xs font-bold uppercase tracking-wider text-amber-300">Data Oficial Ainda Não Divulgada</span>
+                        <span class="text-xs text-gray-300">${escapeHtml(hero.estimatedPeriod || 'Aguardando calendário oficial')}</span>
+                      </div>
+                    </div>
+                    <button
+                      onclick="openTicketModal('${hero.id}')"
+                      class="px-3 py-1.5 rounded-xl text-[11px] font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 transition-colors cursor-pointer shrink-0"
+                    >
+                      Definir Datas
+                    </button>
+                  </div>
+                ` : `
+                  <div id="hero-main-countdown" class="grid grid-cols-4 gap-2 sm:gap-3 max-w-md">
+                    <div class="p-2.5 sm:p-3 rounded-2xl bg-slate-950/85 border border-slate-800 text-center backdrop-blur-md">
+                      <span id="cd-days" class="block font-mono text-xl sm:text-3xl font-extrabold text-white">${cd ? cd.days : 0}</span>
+                      <span class="text-[10px] uppercase tracking-wider text-gray-400">Dias</span>
+                    </div>
+                    <div class="p-2.5 sm:p-3 rounded-2xl bg-slate-950/85 border border-slate-800 text-center backdrop-blur-md">
+                      <span id="cd-hours" class="block font-mono text-xl sm:text-3xl font-extrabold text-cyan-300">${cd ? String(cd.hours).padStart(2, '0') : '00'}</span>
+                      <span class="text-[10px] uppercase tracking-wider text-gray-400">Horas</span>
+                    </div>
+                    <div class="p-2.5 sm:p-3 rounded-2xl bg-slate-950/85 border border-slate-800 text-center backdrop-blur-md">
+                      <span id="cd-mins" class="block font-mono text-xl sm:text-3xl font-extrabold text-emerald-300">${cd ? String(cd.minutes).padStart(2, '0') : '00'}</span>
+                      <span class="text-[10px] uppercase tracking-wider text-gray-400">Min</span>
+                    </div>
+                    <div class="p-2.5 sm:p-3 rounded-2xl bg-slate-950/85 border border-slate-800 text-center backdrop-blur-md">
+                      <span id="cd-secs" class="block font-mono text-xl sm:text-3xl font-extrabold text-amber-300">${cd ? String(cd.seconds).padStart(2, '0') : '00'}</span>
+                      <span class="text-[10px] uppercase tracking-wider text-gray-400">Seg</span>
+                    </div>
+                  </div>
+                `}
+              </div>
+
+              <!-- Direita: Card Secundário de Ingressos + Resenhômetro -->
+              <div class="lg:col-span-5 space-y-3">
+                ${ticket ? `
+                  <div class="p-3.5 rounded-2xl bg-slate-950/85 border border-slate-800/90 backdrop-blur-md space-y-2">
+                    <div class="flex items-center justify-between gap-2">
+                      <span class="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-300">
+                        <i data-lucide="ticket" class="w-4 h-4 text-cyan-400"></i>
+                        <span>Abertura de Ingressos</span>
+                      </span>
+                      <button
+                        onclick="openTicketModal('${hero.id}')"
+                        class="text-[11px] font-semibold text-gray-400 hover:text-white underline cursor-pointer"
+                      >
+                        Editar
+                      </button>
+                    </div>
+
+                    ${ticket.isTBA || !ticket.openDate ? `
+                      <p class="text-xs text-amber-200/90 font-medium">
+                        ${escapeHtml(ticket.note || 'Data de abertura ainda não divulgada')}
+                      </p>
+                    ` : `
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="text-gray-400">Abertura: <strong class="text-white">${formatDateBR(ticket.openDate)}</strong></span>
+                        <span id="hero-ticket-countdown" class="font-mono font-bold text-emerald-400">
+                          ${ticketCd ? (ticketCd.passed ? 'Vendas Abertas!' : `Faltam ${ticketCd.days}d ${String(ticketCd.hours).padStart(2, '0')}h`) : ''}
+                        </span>
+                      </div>
+                    `}
+                  </div>
+                ` : ''}
+
+                <!-- Barra do Cofre + Botão Resenhômetro -->
+                <div class="p-3.5 rounded-2xl bg-slate-950/85 border border-slate-800/90 backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
+                  <div class="flex-1 min-w-[140px] space-y-1.5">
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-gray-400">Cofre por pessoa</span>
+                      <span class="font-mono font-bold text-emerald-400">${formatCurrency(hero.savedPerPerson)} / ${formatCurrency(hero.goalPerPerson)}</span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-slate-900 overflow-hidden">
+                      <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-500" style="width: ${vaultPct}%"></div>
+                    </div>
+                  </div>
+
+                  <button
+                    onclick="boostTripHype('${hero.id}', event)"
+                    class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold text-slate-950 bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-300 hover:to-orange-300 shadow-lg shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <span>🔥 Resenhômetro</span>
+                    <span class="px-2 py-0.5 rounded-lg bg-black/20 font-mono text-xs">${hero.boosts || 0}</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function startSlideshowTimer() {
+      if (slideIntervalId) clearInterval(slideIntervalId);
+      slideIntervalId = setInterval(() => {
+        const photos = state.photos && state.photos.length > 0 ? state.photos : DEFAULT_PHOTOS;
+        if (photos.length <= 1) return;
+        state.currentSlideIndex = (state.currentSlideIndex + 1) % photos.length;
+        const nextPhoto = photos[state.currentSlideIndex];
+        const imgEl = document.getElementById('hero-active-img');
+        const capEl = document.getElementById('hero-photo-caption');
+        const cntEl = document.getElementById('hero-photo-counter');
+        if (imgEl && nextPhoto) {
+          imgEl.style.opacity = '0.15';
+          setTimeout(() => {
+            imgEl.src = nextPhoto.url;
+            imgEl.style.opacity = '0.55';
+            if (capEl) capEl.textContent = nextPhoto.caption || 'Galera reunida';
+            if (cntEl) cntEl.textContent = `(${state.currentSlideIndex + 1}/${photos.length})`;
+          }, 350);
+        }
+      }, 6500);
+    }
+
+    function tickHeroCountdowns() {
+      const hero = getHeroTrip();
+      if (!hero) return;
+      if (!hero.isDateTBA && hero.targetDate) {
+        const cd = getCountdownParts(hero.targetDate);
+        const dEl = document.getElementById('cd-days');
+        const hEl = document.getElementById('cd-hours');
+        const mEl = document.getElementById('cd-mins');
+        const sEl = document.getElementById('cd-secs');
+        if (cd && dEl && hEl && mEl && sEl) {
+          dEl.textContent = cd.days;
+          hEl.textContent = String(cd.hours).padStart(2, '0');
+          mEl.textContent = String(cd.minutes).padStart(2, '0');
+          sEl.textContent = String(cd.seconds).padStart(2, '0');
+        }
+      }
+      if (hero.ticketSale && !hero.ticketSale.isTBA && hero.ticketSale.openDate) {
+        const tcd = getCountdownParts(hero.ticketSale.openDate);
+        const tEl = document.getElementById('hero-ticket-countdown');
+        if (tcd && tEl) {
+          tEl.textContent = tcd.passed
+            ? 'Vendas Abertas!'
+            : `Faltam ${tcd.days}d ${String(tcd.hours).padStart(2, '0')}h ${String(tcd.minutes).padStart(2, '0')}m`;
+        }
+      }
+    }
+
+    // =========================================================================
+    // 5. LISTA DE VIAGENS + DROPDOWN DE DETALHES
+    // =========================================================================
+    function toggleTripDetails(tripId) {
+      state.expandedTripIds[tripId] = !state.expandedTripIds[tripId];
+      if (!state.activeTripTabs[tripId]) {
+        state.activeTripTabs[tripId] = 'vault';
+      }
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function switchTripTab(tripId, tabName) {
+      state.activeTripTabs[tripId] = tabName;
+      state.expandedTripIds[tripId] = true;
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function renderTripsList() {
+      const container = document.getElementById('trips-list-container');
+      const countLabel = document.getElementById('trips-count-label');
+      if (!container) return;
+
+      if (countLabel) {
+        countLabel.textContent = `${state.trips.length} ${state.trips.length === 1 ? 'plano cadastrado' : 'planos cadastrados'}`;
+      }
+
+      if (state.trips.length === 0) {
+        container.innerHTML = `
+          <div class="glass-surface rounded-2xl p-8 text-center space-y-3">
+            <p class="text-sm text-gray-300">Nenhuma viagem cadastrada ainda.</p>
+            <button onclick="openNewTripModal()" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer">
+              + Adicionar Primeira Viagem
+            </button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.trips.map(trip => {
+        const isExpanded = !!state.expandedTripIds[trip.id];
+        const activeTab = state.activeTripTabs[trip.id] || 'vault';
+        const vaultPct = trip.goalPerPerson > 0
+          ? Math.min(100, Math.round(((trip.savedPerPerson || 0) / trip.goalPerPerson) * 100))
+          : 0;
+        const monthsLeft = getMonthsUntil(trip.targetDate);
+        const remainingAmount = Math.max(0, (trip.goalPerPerson || 0) - (trip.savedPerPerson || 0));
+        const monthlySuggested = Math.ceil(remainingAmount / monthsLeft);
+
+        const doneCheckpoints = (trip.checkpoints || []).filter(c => c.done).length;
+        const totalCheckpoints = (trip.checkpoints || []).length;
+        const cd = !trip.isDateTBA ? getCountdownParts(trip.targetDate) : null;
+
+        return `
+          <article class="glass-surface rounded-2xl overflow-hidden transition-all border border-slate-800/90">
+            <!-- Cabeçalho Compacto Sempre Visível -->
+            <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div class="space-y-1.5">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-cyan-300 border border-slate-700">
+                    ${escapeHtml(trip.category || 'Viagem')}
+                  </span>
+                  <span class="text-xs font-mono text-gray-400">
+                    ${trip.isDateTBA
+                      ? escapeHtml(trip.estimatedPeriod || 'Data a definir')
+                      : `${formatDateBR(trip.targetDate)} • ${cd && !cd.passed ? `Faltam ${cd.days} dias` : 'Chegou!'}`
+                    }
+                  </span>
+                </div>
+
+                <h4 class="text-base sm:text-lg font-bold text-white">${escapeHtml(trip.title)}</h4>
+                <p class="text-xs text-gray-400 flex items-center gap-1.5">
+                  <i data-lucide="map-pin" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+                  <span>${escapeHtml(trip.destination)}</span>
+                </p>
+              </div>
+
+              <!-- Resumo Rápido + Botões -->
+              <div class="flex flex-wrap items-center gap-3 sm:justify-end">
+                <div class="w-36 space-y-1">
+                  <div class="flex items-center justify-between text-[11px] font-mono">
+                    <span class="text-gray-400">Cofre</span>
+                    <span class="text-emerald-400 font-bold">${vaultPct}%</span>
+                  </div>
+                  <div class="h-1.5 w-full rounded-full bg-slate-900 overflow-hidden">
+                    <div class="h-full rounded-full bg-gradient-to-r from-cyan-400 to-emerald-400" style="width: ${vaultPct}%"></div>
+                  </div>
+                </div>
+
+                <button
+                  onclick="boostTripHype('${trip.id}', event)"
+                  class="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-amber-200 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 active:scale-95 transition-all cursor-pointer"
+                >
+                  <span>🔥 Resenhômetro</span>
+                  <span class="font-mono font-extrabold text-amber-300">${trip.boosts || 0}</span>
+                </button>
+
+                <button
+                  onclick="toggleTripDetails('${trip.id}')"
+                  class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-gray-200 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 transition-all cursor-pointer"
+                >
+                  <span>${isExpanded ? 'Ocultar Detalhes' : 'Detalhes & Cofre'}</span>
+                  <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" class="w-4 h-4 text-cyan-400"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Área Expansível (Oculta por Padrão) -->
+            ${isExpanded ? `
+              <div class="border-t border-slate-800/90 bg-[#090D16]/90 p-4 sm:p-5 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                  <div class="flex flex-wrap gap-1.5">
+                    <button
+                      onclick="switchTripTab('${trip.id}', 'vault')"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'vault' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
+                    >
+                      💰 Cofre (${formatCurrency(trip.savedPerPerson)})
+                    </button>
+                    <button
+                      onclick="switchTripTab('${trip.id}', 'checklist')"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'checklist' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
+                    >
+                      ✅ Checklist (${doneCheckpoints}/${totalCheckpoints})
+                    </button>
+                    <button
+                      onclick="switchTripTab('${trip.id}', 'ideas')"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'ideas' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
+                    >
+                      💡 Mural de Ideias (${(trip.ideas || []).length})
+                    </button>
+                    <button
+                      onclick="switchTripTab('${trip.id}', 'squad')"
+                      class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${activeTab === 'squad' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' : 'text-gray-400 hover:text-white hover:bg-slate-800'}"
+                    >
+                      👥 Galera (${(trip.squad || []).length})
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-2">
+                    ${!trip.isHero ? `
+                      <button
+                        onclick="setTripAsHero('${trip.id}')"
+                        class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 cursor-pointer"
+                      >
+                        Fixar no Topo
+                      </button>
+                    ` : ''}
+                    <button
+                      onclick="deleteTrip('${trip.id}')"
+                      class="px-2.5 py-1 rounded-lg text-[11px] font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 cursor-pointer"
+                    >
+                      ${deleteConfirmTripId === trip.id ? 'Confirmar Exclusão?' : 'Excluir'}
+                    </button>
+                  </div>
+                </div>
+
+                ${activeTab === 'vault' ? `
+                  <div class="space-y-4">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span class="block text-[11px] text-gray-400">Guardado / Meta (Por Pessoa)</span>
+                        <span class="font-mono text-sm font-bold text-white">${formatCurrency(trip.savedPerPerson)} <span class="text-gray-500">de ${formatCurrency(trip.goalPerPerson)}</span></span>
+                      </div>
+                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span class="block text-[11px] text-gray-400">Falta Juntar</span>
+                        <span class="font-mono text-sm font-bold text-amber-300">${formatCurrency(remainingAmount)}</span>
+                      </div>
+                      <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+                        <span class="block text-[11px] text-gray-400">Sugestão Mensal (~${monthsLeft} meses)</span>
+                        <span class="font-mono text-sm font-bold text-emerald-400">${formatCurrency(monthlySuggested)}/mês</span>
+                      </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                      <button onclick="addDeposit('${trip.id}', 50)" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer">+ R$ 50</button>
+                      <button onclick="addDeposit('${trip.id}', 100)" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer">+ R$ 100</button>
+                      <button onclick="addDeposit('${trip.id}', 250)" class="px-3 py-1.5 rounded-xl text-xs font-mono font-bold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 cursor-pointer">+ R$ 250</button>
+                      <form onsubmit="handleCustomDeposit(event, '${trip.id}')" class="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          id="custom-deposit-${trip.id}"
+                          placeholder="Outro valor (R$)"
+                          class="w-32 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs font-mono text-white focus:border-emerald-400 focus:outline-none"
+                        />
+                        <button type="submit" class="px-3 py-1.5 rounded-xl text-xs font-bold text-slate-950 bg-emerald-400 hover:bg-emerald-300 cursor-pointer">Guardar</button>
+                      </form>
+                    </div>
+                  </div>
+                ` : ''}
+
+                ${activeTab === 'checklist' ? `
+                  <div class="space-y-3">
+                    <div class="space-y-2">
+                      ${(trip.checkpoints || []).map(cp => `
+                        <label class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            ${cp.done ? 'checked' : ''}
+                            onchange="toggleCheckpoint('${trip.id}', '${cp.id}')"
+                            class="w-4 h-4 rounded accent-cyan-400 cursor-pointer"
+                          />
+                          <span class="text-xs ${cp.done ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(cp.text)}</span>
+                        </label>
+                      `).join('')}
+                    </div>
+                    <form onsubmit="handleAddCheckpoint(event, '${trip.id}')" class="flex gap-2">
+                      <input
+                        type="text"
+                        id="new-cp-${trip.id}"
+                        placeholder="Adicionar nova tarefa de planejamento..."
+                        class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-cyan-400 focus:outline-none"
+                      />
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 cursor-pointer">Adicionar</button>
+                    </form>
+                  </div>
+                ` : ''}
+
+                ${activeTab === 'ideas' ? `
+                  <div class="space-y-3">
+                    <div class="space-y-2">
+                      ${(trip.ideas || []).map(idea => `
+                        <div class="flex items-center justify-between gap-3 p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                          <div class="space-y-0.5">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400">${escapeHtml(idea.tag || 'Ideia')}</span>
+                            <p class="text-xs text-gray-200">${escapeHtml(idea.text)}</p>
+                          </div>
+                          <button
+                            onclick="voteIdea('${trip.id}', '${idea.id}')"
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold ${idea.voted ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-amber-300 hover:bg-slate-700'} cursor-pointer shrink-0"
+                          >
+                            <span>▲</span>
+                            <span>${idea.votes || 0}</span>
+                          </button>
+                        </div>
+                      `).join('')}
+                    </div>
+                    <form onsubmit="handleAddIdea(event, '${trip.id}')" class="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        id="new-idea-${trip.id}"
+                        placeholder="Sugerir passeio, rolê ou experiência..."
+                        class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-amber-400 focus:outline-none"
+                      />
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 cursor-pointer">Sugerir</button>
+                    </form>
+                  </div>
+                ` : ''}
+
+                ${activeTab === 'squad' ? `
+                  <div class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      ${(trip.squad || []).map(member => `
+                        <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/70 border border-slate-800/80">
+                          <span class="text-xs font-semibold text-white">${escapeHtml(member.name)}</span>
+                          <button
+                            onclick="cycleMemberStatus('${trip.id}', '${member.id}')"
+                            class="px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer ${
+                              member.status === 'Confirmado'
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                : member.status === 'Juntando Grana'
+                                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                                  : 'bg-slate-800 text-gray-300 border border-slate-700'
+                            }"
+                          >
+                            ${escapeHtml(member.status)}
+                          </button>
+                        </div>
+                      `).join('')}
+                    </div>
+                    <form onsubmit="handleAddMember(event, '${trip.id}')" class="flex gap-2">
+                      <input
+                        type="text"
+                        id="new-member-${trip.id}"
+                        placeholder="Nome do amigo(a)..."
+                        class="flex-1 px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:border-purple-400 focus:outline-none"
+                      />
+                      <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-purple-400 hover:bg-purple-300 cursor-pointer">Adicionar</button>
+                    </form>
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </article>
+        `;
+      }).join('');
+    }
+
+    // =========================================================================
+    // 6. INTERAÇÕES DE VIAGEM
+    // =========================================================================
+    function addDeposit(tripId, amount) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.savedPerPerson = Math.max(0, (trip.savedPerPerson || 0) + Number(amount));
+      saveState();
+      renderAll();
+      showToast(`+${formatCurrency(amount)} adicionado ao cofre!`, 'success');
+    }
+
+    function handleCustomDeposit(e, tripId) {
+      e.preventDefault();
+      const input = document.getElementById(`custom-deposit-${tripId}`);
+      const val = Number(input.value);
+      if (!val) return;
+      addDeposit(tripId, val);
+      input.value = '';
+    }
+
+    function toggleCheckpoint(tripId, cpId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      const cp = (trip.checkpoints || []).find(c => c.id === cpId);
+      if (cp) cp.done = !cp.done;
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function handleAddCheckpoint(e, tripId) {
+      e.preventDefault();
+      const input = document.getElementById(`new-cp-${tripId}`);
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.checkpoints = trip.checkpoints || [];
+      trip.checkpoints.push({ id: 'cp-' + Date.now(), text, done: false });
+      input.value = '';
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function voteIdea(tripId, ideaId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      const idea = (trip.ideas || []).find(i => i.id === ideaId);
+      if (!idea) return;
+      idea.voted = !idea.voted;
+      idea.votes = Math.max(0, (idea.votes || 0) + (idea.voted ? 1 : -1));
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function handleAddIdea(e, tripId) {
+      e.preventDefault();
+      const input = document.getElementById(`new-idea-${tripId}`);
+      const text = (input.value || '').trim();
+      if (!text) return;
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.ideas = trip.ideas || [];
+      trip.ideas.push({ id: 'id-' + Date.now(), text, tag: 'Sugestão', votes: 1, voted: true });
+      input.value = '';
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function cycleMemberStatus(tripId, memberId) {
+      const statuses = ['Talvez', 'Juntando Grana', 'Confirmado'];
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      const member = (trip.squad || []).find(m => m.id === memberId);
+      if (!member) return;
+      const idx = statuses.indexOf(member.status);
+      member.status = statuses[(idx + 1) % statuses.length];
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function handleAddMember(e, tripId) {
+      e.preventDefault();
+      const input = document.getElementById(`new-member-${tripId}`);
+      const name = (input.value || '').trim();
+      if (!name) return;
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      trip.squad = trip.squad || [];
+      trip.squad.push({ id: 'sq-' + Date.now(), name, status: 'Talvez' });
+      input.value = '';
+      saveState();
+      renderTripsList();
+      refreshIcons();
+    }
+
+    function setTripAsHero(tripId) {
+      state.trips.forEach(t => { t.isHero = (t.id === tripId); });
+      saveState();
+      renderAll();
+      showToast('Viagem destacada no topo!', 'success');
+    }
+
+    function deleteTrip(tripId) {
+      if (deleteConfirmTripId !== tripId) {
+        deleteConfirmTripId = tripId;
+        renderTripsList();
+        refreshIcons();
+        setTimeout(() => {
+          if (deleteConfirmTripId === tripId) {
+            deleteConfirmTripId = null;
+            renderTripsList();
+            refreshIcons();
+          }
+        }, 3500);
+        return;
+      }
+      deleteConfirmTripId = null;
+      state.trips = state.trips.filter(t => t.id !== tripId);
+      if (state.trips.length > 0 && !state.trips.some(t => t.isHero)) {
+        state.trips[0].isHero = true;
+      }
+      saveState();
+      renderAll();
+      showToast('Viagem removida.', 'info');
+    }
+
+    // =========================================================================
+    // 7. MODAL DE DATAS & INGRESSOS + MODAL NOVA VIAGEM
+    // =========================================================================
+    function openTicketModal(tripId) {
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+      document.getElementById('ticket-trip-id').value = trip.id;
+      document.getElementById('ticket-event-tba').checked = !!trip.isDateTBA;
+      document.getElementById('ticket-event-date').value = trip.targetDate || '';
+      const ts = trip.ticketSale || { isTBA: true, openDate: '', note: '' };
+      document.getElementById('ticket-sale-tba').checked = !!ts.isTBA;
+      document.getElementById('ticket-sale-date').value = ts.openDate || '';
+      document.getElementById('ticket-sale-note').value = ts.note || '';
+      document.getElementById('ticket-modal').classList.remove('hidden');
+      refreshIcons();
+    }
+
+    function closeTicketModal() {
+      document.getElementById('ticket-modal').classList.add('hidden');
+    }
+
+    function handleSaveTicketModal(e) {
+      e.preventDefault();
+      const tripId = document.getElementById('ticket-trip-id').value;
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+
+      trip.isDateTBA = document.getElementById('ticket-event-tba').checked;
+      const evDate = document.getElementById('ticket-event-date').value;
+      if (evDate) trip.targetDate = evDate;
+
+      trip.ticketSale = {
+        isTBA: document.getElementById('ticket-sale-tba').checked,
+        openDate: document.getElementById('ticket-sale-date').value,
+        note: document.getElementById('ticket-sale-note').value.trim() || 'Aguardando abertura oficial'
+      };
+
+      saveState();
+      closeTicketModal();
+      renderAll();
+      showToast('Datas e alerta de ingressos atualizados!', 'success');
+    }
+
+    function openNewTripModal() {
+      document.getElementById('new-trip-modal').classList.remove('hidden');
+      refreshIcons();
+    }
+
+    function closeNewTripModal() {
+      document.getElementById('new-trip-modal').classList.add('hidden');
+    }
+
+    function handleCreateTrip(e) {
+      e.preventDefault();
+      const title = document.getElementById('nt-title').value.trim();
+      const destination = document.getElementById('nt-destination').value.trim();
+      const category = document.getElementById('nt-category').value;
+      const isDateTBA = document.getElementById('nt-date-tba').checked;
+      const targetDate = document.getElementById('nt-date').value || '2028-01-15';
+      const goalPerPerson = Math.max(0, Number(document.getElementById('nt-goal').value) || 2000);
+      const isHero = document.getElementById('nt-is-hero').checked;
+
+      if (!title || !destination) return;
+      if (isHero) state.trips.forEach(t => { t.isHero = false; });
+
+      state.trips.push({
+        id: 'trip-' + Date.now(),
+        title,
+        destination,
+        category,
+        isHero: isHero || state.trips.length === 0,
+        isDateTBA,
+        estimatedPeriod: isDateTBA ? 'Data a definir' : formatDateBR(targetDate),
+        targetDate,
+        ticketSale: null,
+        hypeLevel: 0,
+        boosts: 0,
+        goalPerPerson,
+        savedPerPerson: 0,
+        deposits: [],
+        checkpoints: [
+          { id: 'cp-' + Date.now() + '-1', text: 'Alinhar datas e orçamento com o grupo', done: false }
+        ],
+        ideas: [],
+        squad: [{ id: 'sq-' + Date.now() + '-1', name: 'Aedriun', status: 'Confirmado' }]
+      });
+
+      e.target.reset();
+      saveState();
+      closeNewTripModal();
+      renderAll();
+      showToast('Nova viagem criada!', 'success');
+    }
+
+    // =========================================================================
+    // 8. MODAL COMPARTILHAR / BACKUP / RESET
+    // =========================================================================
+    function openShareModal() {
+      resetConfirmPending = false;
+      const btn = document.getElementById('btn-reset-default');
+      if (btn) btn.textContent = 'Restaurar Padrão Zerado';
+      const encoded = encodeStateToHash();
+      const url = `${window.location.origin}${window.location.pathname}${encoded ? '#squad=' + encoded : ''}`;
+      document.getElementById('share-link-input').value = url;
+      document.getElementById('share-modal').classList.remove('hidden');
+      refreshIcons();
+    }
+
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function copyShareLink() {
+      const input = document.getElementById('share-link-input');
+      input.select();
+      input.setSelectionRange(0, 999999);
+      try {
+        document.execCommand('copy');
+        showToast('Link copiado! Cole no grupo do WhatsApp.', 'success');
+      } catch (e) {
+        showToast('Selecione e copie o link manualmente.', 'info');
+      }
+    }
+
+    function shareToWhatsApp() {
+      const link = document.getElementById('share-link-input').value;
+      const text = encodeURIComponent(`Bora acompanhar nossas próximas viagens no RESENHATRON 2000! 🔥✈️\n${link}`);
+      window.open(`https://wa.me/?text=${text}`, '_blank', 'noopener');
+    }
+
+    function exportBackupJson() {
+      const payload = {
+        app: 'RESENHATRON 2000',
+        exportedAt: new Date().toISOString(),
+        trips: state.trips,
+        photos: state.photos.filter(p => typeof p.url === 'string' && !p.url.startsWith('data:'))
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `resenhatron-2000-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showToast('Backup JSON baixado!', 'success');
+    }
+
+    function importBackupJson(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (parsed && Array.isArray(parsed.trips)) {
+            state.trips = parsed.trips;
+            if (Array.isArray(parsed.photos) && parsed.photos.length > 0) {
+              state.photos = parsed.photos;
+            }
+            saveState();
+            closeShareModal();
+            renderAll();
+            showToast('Backup restaurado com sucesso!', 'success');
+          } else {
+            throw new Error('Formato inválido');
+          }
+        } catch (err) {
+          showToast('Arquivo JSON inválido.', 'danger');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    function boostTripHype(tripId, event) {
+      if (event) event.stopPropagation();
+      const trip = state.trips.find(t => t.id === tripId);
+      if (!trip) return;
+
+      trip.boosts = (trip.boosts || 0) + 1;
+      trip.hypeLevel = Math.min(100, (trip.hypeLevel || 0) + 2);
+      saveState();
+
+      if (event && event.currentTarget) {
+        const rect = event.currentTarget.getBoundingClientRect();
+        const floater = document.createElement('div');
+        floater.textContent = '+1 🔥';
+        floater.className = 'fixed z-[90] pointer-events-none font-mono font-extrabold text-sm text-amber-400 drop-shadow animate-float-up';
+        floater.style.left = `${rect.left + rect.width / 2 - 18}px`;
+        floater.style.top = `${rect.top - 6}px`;
+        document.body.appendChild(floater);
+        setTimeout(() => floater.remove(), 950);
+      }
+
+      renderAll();
+    }
+
+    // =========================================================================
+    // 9. MODAL DE FOTOS DA GALERA (DRIVE + UPLOAD COMPRIMIDO + /FOTOS)
+    // =========================================================================
+    function openPhotosModal() {
+      renderPhotosGrid();
+      document.getElementById('photos-modal').classList.remove('hidden');
+      refreshIcons();
+    }
+
+    function closePhotosModal() {
+      document.getElementById('photos-modal').classList.add('hidden');
+    }
+
+    function renderPhotosGrid() {
+      const grid = document.getElementById('photos-grid-container');
+      const countEl = document.getElementById('photos-modal-count');
+      countEl.textContent = state.photos.length;
+
+      const previewList = state.photos.slice(0, 60);
+      grid.innerHTML = previewList.map(photo => `
+        <div class="group relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 aspect-video">
+          <img
+            src="${escapeHtml(photo.url)}"
+            alt="${escapeHtml(photo.caption || 'Foto')}"
+            onerror="this.src='https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=70'"
+            class="w-full h-full object-cover"
+          />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent p-2.5 flex flex-col justify-between">
+            <div class="flex justify-end">
+              <button
+                onclick="removePhoto('${photo.id}')"
+                class="p-1.5 rounded-lg bg-black/70 hover:bg-rose-600 text-white transition-colors cursor-pointer"
+                title="Remover foto"
+              >
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+            <p class="text-[11px] text-gray-200 truncate">${escapeHtml(photo.caption || 'Foto da galera')}</p>
+          </div>
+        </div>
+      `).join('');
+
+      if (state.photos.length > 60) {
+        grid.innerHTML += `
+          <div class="col-span-2 sm:col-span-3 text-center text-[11px] font-mono text-gray-400 py-2">
+            Mostrando 60 de ${state.photos.length} fotos ativas no carrossel (todas giram no fundo!).
+          </div>
+        `;
+      }
+      refreshIcons();
+    }
+
+    function handleAddPhotoUrl(e) {
+      e.preventDefault();
+      const urlInput = document.getElementById('photo-url-input');
+      const captionInput = document.getElementById('photo-caption-input');
+      const normalized = normalizePhotoUrl(urlInput.value);
+      if (!normalized) return;
+
+      const newPhoto = {
+        id: 'ph-' + Date.now(),
+        url: normalized,
+        caption: captionInput.value.trim() || 'Memória da galera'
+      };
+      state.photos.unshift(newPhoto);
+      savePhotoToIDB(newPhoto);
+
+      state.currentSlideIndex = 0;
+      saveState();
+      urlInput.value = '';
+      captionInput.value = '';
+      renderPhotosGrid();
+      renderHero();
+      startSlideshowTimer();
+      showToast('Foto adicionada ao carrossel!', 'success');
+    }
+
+    function applyVercelFolderPhotos() {
+      const textarea = document.getElementById('vercel-folder-names');
+      const lines = (textarea.value || '')
+        .split(/\r?\n/)
+        .map(s => s.trim())
+        .filter(Boolean);
+
+      if (lines.length === 0) {
+        showToast('Digite pelo menos um nome de arquivo da pasta /fotos.', 'info');
+        return;
+      }
+
+      const folderItems = lines.map((name, i) => {
+        const cleanPath = name.startsWith('http')
+          ? name
+          : `./fotos/${name.replace(/^\/?fotos\//, '')}`;
+        return {
+          id: 'ph-vercel-' + Date.now() + '-' + i,
+          url: cleanPath,
+          caption: name.replace(/\.[^/.]+$/, '')
+        };
+      });
+
+      state.photos = shuffleArray([...folderItems, ...state.photos]);
+      state.currentSlideIndex = 0;
+      saveState();
+      textarea.value = '';
+      renderPhotosGrid();
+      renderHero();
+      startSlideshowTimer();
+      showToast(`${folderItems.length} foto(s) da pasta /fotos adicionadas!`, 'success');
+    }
+
+    function compressImageFile(file, maxWidth = 1280, quality = 0.72) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = new Image();
+          img.onload = function() {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = reject;
+          img.src = event.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleLocalPhotoUpload(e) {
+      const files = Array.from(e.target.files || []);
+      if (files.length === 0) return;
+
+      const progressWrap = document.getElementById('photo-upload-progress');
+      const progressText = document.getElementById('photo-progress-text');
+      const progressPct = document.getElementById('photo-progress-pct');
+      const progressBar = document.getElementById('photo-progress-bar');
+
+      progressWrap.classList.remove('hidden');
+      let addedCount = 0;
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const compressedDataUrl = await compressImageFile(file, 1280, 0.72);
+          const photoObj = {
+            id: 'ph-loc-' + Date.now() + '-' + i + '-' + Math.random().toString(36).slice(2, 6),
+            url: compressedDataUrl,
+            caption: file.name.replace(/\.[^/.]+$/, '')
+          };
+          await savePhotoToIDB(photoObj);
+          state.photos.unshift(photoObj);
+          addedCount++;
+        } catch (err) {
+          console.error('Erro ao processar foto:', file.name, err);
+        }
+
+        const pct = Math.round(((i + 1) / files.length) * 100);
+        progressText.textContent = `Otimizando foto ${i + 1} de ${files.length}...`;
+        progressPct.textContent = `${pct}%`;
+        progressBar.style.width = `${pct}%`;
+      }
+
+      state.currentSlideIndex = 0;
+      saveStateLocalOnly();
+      renderPhotosGrid();
+      renderHero();
+      startSlideshowTimer();
+      e.target.value = '';
+
+      setTimeout(() => {
+        progressWrap.classList.add('hidden');
+        progressBar.style.width = '0%';
+      }, 900);
+
+      showToast(`${addedCount} foto(s) salvas no carrossel!`, 'success');
+    }
+
+    async function removePhoto(photoId) {
+      state.photos = state.photos.filter(p => p.id !== photoId);
+      await deletePhotoFromIDB(photoId);
+      if (state.photos.length === 0) {
+        state.photos = JSON.parse(JSON.stringify(DEFAULT_PHOTOS));
+      }
+      state.currentSlideIndex = 0;
+      saveState();
+      renderPhotosGrid();
+      renderHero();
+    }
+
+    async function restoreDefaultPhotos() {
+      await clearPhotosInIDB();
+      state.photos = JSON.parse(JSON.stringify(DEFAULT_PHOTOS));
+      state.currentSlideIndex = 0;
+      saveState();
+      renderPhotosGrid();
+      renderHero();
+      showToast('Fotos padrão restauradas.', 'info');
+    }
+
+    async function handleResetDefault() {
+      const btn = document.getElementById('btn-reset-default');
+      if (!resetConfirmPending) {
+        resetConfirmPending = true;
+        btn.textContent = 'Clique de novo para confirmar';
+        return;
+      }
+      await clearPhotosInIDB();
+      state.trips = JSON.parse(JSON.stringify(DEFAULT_TRIPS));
+      state.photos = JSON.parse(JSON.stringify(DEFAULT_PHOTOS));
+      state.expandedTripIds = {};
+      saveState();
+      closeShareModal();
+      renderAll();
+      showToast('Painel restaurado para o padrão zerado.', 'info');
+    }
+
+    // =========================================================================
+    // 10. INICIALIZAÇÃO & ÍCONES SEGUROS
+    // =========================================================================
+    function refreshIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        try {
+          window.lucide.createIcons();
+        } catch (err) {
+          console.warn('Falha ao renderizar ícones Lucide:', err);
+        }
+      }
+    }
+    window.refreshIcons = refreshIcons;
+
+    function renderAll() {
+      renderHero();
+      renderTripsList();
+      refreshIcons();
+    }
+    window.renderAll = renderAll;
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadState();
+      renderAll();
+      startSlideshowTimer();
+      setInterval(tickHeroCountdowns, 1000);
+    });
+
+    window.addEventListener('load', () => {
+      refreshIcons();
+    });
+  </script>
+</body>
+</html>
